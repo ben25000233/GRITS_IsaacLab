@@ -1,0 +1,72 @@
+defaults:
+  - task: food_scoop
+
+trial_name: "0618_single"
+img_type: "rgbd"
+camera_view: 
+  mode: "single" # multi
+  direction: "back" # front
+proprioception: False
+guidance: False
+validation: False
+check_traj : False
+
+pre_processing:
+  image_range: "standard" # standard:[0,1], dp:[-1,1], image_net
+  traj_range: "dp"  # dp:[-1,1] 
+
+data:
+  rootPath: '/media/hcis-s22/data/isaaclab_dp_split_dataset'
+  food_item: ['brl', 'brm', 'brh', 
+              'col', 'com', 'coh', 
+              'jul', 'jum', 'juh', 
+              'mbl', 'mbm', 'mbh', 
+              'syl', 'sym', 'syh',
+              'orl'
+              ]
+  trial_num: 5
+
+train_dataloader:
+  batch_size: 32
+  num_workers: 8
+
+val_dataloader:
+  batch_size: 1
+  num_workers: 8
+
+test_dataloader:
+  batch_size: 1
+  num_workers: 8
+
+horizon: 16
+n_obs_steps: 5
+n_action_steps: 12
+num_train_timesteps: 100
+num_inference_steps: 16
+
+training:
+  multi_gpu: True
+  device: "cuda:0"
+  num_epochs: 600
+  gradient_accumulate_every: 1
+  lr: 0.0001
+  lr_warmup_steps: 500
+  lr_scheduler: "linear"  # cosine
+  num_cycles: 1
+  save_epoch_range: 100
+
+testing:
+  device: "cuda:0"
+  ckpt_epoch: 500
+  guided_mode: "guided_dp" # post_processing
+  start_guided_iteration: 30
+  guided_weight: 3.
+  goal_guided:
+    mode: "sum_all_frame_weighted"
+    weight: 1.0
+  spillage_guided:
+    mode: "mean"
+    weight: 1.0
+  quatity_guided:
+    mode: "AE"
+    weight: 1.0
