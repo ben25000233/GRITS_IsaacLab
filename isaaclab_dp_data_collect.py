@@ -256,7 +256,7 @@ class Dp_dataCollection():
         ee_goals = torch.tensor(self.mean_eepose_qua, device=sim.device)
 
         # modify the trajectory to simulation
-        modify_ee_goals = self.eepose_real2sim_offset(ee_goals)
+        modify_ee_goals = self.functions.eepose_real2sim_offset(ee_goals)
         modify_ee_goals = modify_ee_goals.clone().detach().to(sim.device)
         
         # Create buffers to store actions
@@ -287,7 +287,7 @@ class Dp_dataCollection():
         
 
         # ori_goal_pose = torch.tensor(np.load("./sample_trail/col_03/ee_pose_qua.npy")[0])
-        # goal_pose = self.eepose_real2sim_offset([ori_goal_pose])[0]
+        # goal_pose = self.functions.eepose_real2sim_offset([ori_goal_pose])[0]
 
         # hvae no idea why semantic_filter does not work, so use the id_to_labels to filter first
         # Find the ID of the bowl in the semantic segmentation
@@ -387,7 +387,7 @@ class Dp_dataCollection():
             
             # vis offset
             # ee_pose_w = self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7]
-            # ee_pose_w = self.functions.eepose_sim2real_offset(ee_pose_w.to("cpu"))
+            # ee_pose_w = self.functions.functions.eepose_sim2real_offset(ee_pose_w.to("cpu"))
             # ee_marker.visualize(ee_pose_w[:, 0:3], ee_pose_w[:, 3:7])
             # goal_marker.visualize(ee_goals[current_goal_idx].unsqueeze(0)[:, 0:3], ee_goals[current_goal_idx].unsqueeze(0)[:, 3:7])
             
