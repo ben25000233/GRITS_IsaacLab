@@ -342,9 +342,10 @@ class DiffusionPolicy(nn.Module):
             start_guidance=True,
             generator=None,
             ):
-
+        obs_in = torch.tensor(obs_in).to(self.device)
         show_ori_traj = []
         show_guided_traj = []
+        guided_traj = None
         
         model = self.model
         scheduler = self.noise_scheduler
@@ -388,8 +389,10 @@ class DiffusionPolicy(nn.Module):
                             clean_traj = clean_traj.detach().requires_grad_(True)
                             
                             # spillage guidance
+                            
                             spillage_prob= self.spillage_predict(clean_traj, obs_in.float()) 
                             print(f"spillage_prob : {spillage_prob}")
+                            
                             guided_grad = self.spillage_objective(clean_traj, spillage_prob)
 
                             # quantity guidance
@@ -438,32 +441,6 @@ class DiffusionPolicy(nn.Module):
                 
                 guided_traj = traj_guided
             
-            '''
-            elif self.cfg.testing.guided_mode=="guided_noise":
-
-                for t in scheduler.timesteps:
-                    # 1. apply conditioning
-                    traj[condition_mask] = condition_data[condition_mask]
-                    traj_clone = traj.clone()
-
-                    # 2. guided
-                    # Compute gradient
-                    if t<=self.cfg.testing.start_guided_iteration:                
-                        
-                        with torch.enable_grad():
-                            spillage_prob = self.spillage_predict(traj_clone, obs_in.float())
-                            guided_grad = self.spillage_objective(traj_clone, spillage_prob)
-                            traj_clone -= self.spillage_weight * guided_grad 
-                            traj = traj_clone                            
-
-                    # 3. predict model output
-                    model_output = model(traj, t, global_cond=global_cond)
-                    # 4. compute previous image: x_t -> x_t-1
-                    traj = scheduler.step(
-                        model_output, t, traj, 
-                        generator=generator
-                        ).prev_sample
-            '''       
 
 
         # calaulate original trajectory
@@ -493,9 +470,9 @@ class DiffusionPolicy(nn.Module):
             start = self.n_obs_steps-1
             end = start + self.n_action_steps
 
-            # de_ori = _denormalize(traj, self.input_max, self.input_min, self.input_mean)
-            # de_guided = _denormalize(guided_traj, self.input_max, self.input_min, self.input_mean)
-            # show_trajectory(ori_traj=de_ori[:, start:end], guided_traj=de_guided[:, start:end], opt_traj=None)
+            de_ori = _denormalize(traj, self.input_max, self.input_min, self.input_mean)
+            de_guided = _denormalize(guided_traj, self.input_max, self.input_min, self.input_mean)
+            show_trajectory(ori_traj=de_ori[:, start:end], guided_traj=de_guided[:, start:end], opt_traj=None)
 
             
             # for store denoise processing
@@ -554,15 +531,14 @@ class DiffusionPolicy(nn.Module):
                     if t<=self.cfg.testing.start_guided_iteration:
                         with torch.enable_grad():
                             traj = traj.detach().requires_grad_(True)
-                            if self.trigger:
-                                
-                                spillage_prob = self.spillage_predict(traj, torch.tensor(seg_pcd_list).float().to(self.device))
-                                print(f"spillage_prob : {spillage_prob}")
-                                guided_grad = self.spillage_objective(traj, spillage_prob) 
-                                
-                                traj_clone = traj.clone()
-                                traj_clone -= opt_grad_weight * guided_grad
-                                traj = traj_clone
+                    
+                            spillage_prob = self.spillage_predict(traj, torch.tensor(seg_pcd_list).float().to(self.device))
+                            print(f"spillage_prob : {spillage_prob}")
+                            guided_grad = self.spillage_objective(traj, spillage_prob) 
+                            
+                            traj_clone = traj.clone()
+                            traj_clone -= opt_grad_weight * guided_grad
+                            traj = traj_clone
                 
                 nor_opt_traj = traj
                 action_pred = _denormalize(nor_opt_traj, self.input_max, self.input_min, self.input_mean)

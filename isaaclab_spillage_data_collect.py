@@ -54,7 +54,7 @@ from functions.functions import functions
 
 
 class Spillage_DataCollection():
-    def __init__(self, mean_eepose_qua, init_pose = None, food_info = None):
+    def __init__(self, mean_eepose_qua, init_pose = None, food_info = None, sim_dt = 1/240):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
        
@@ -301,7 +301,7 @@ class Spillage_DataCollection():
 
         # modify the trajectory to simulation
         modify_ee_goals = self.eepose_real2sim_offset(ee_goals)
-        modify_ee_goals = modify_ee_goals.clone().detach().to(sim.device)
+        modify_ee_goals = torch.tensor(modify_ee_goals).to(sim.device)
         
         # Create buffers to store actions
         ik_commands = torch.zeros(scene.num_envs, diff_ik_controller.action_dim, device=self.device)
@@ -378,8 +378,11 @@ class Spillage_DataCollection():
                 self.robot.reset()
             
             else :
-                # scooping speed
-                if frame_num % 5 == 0:
+                # set control rate
+                control_rate = 10
+                durarion = int(1/sim_dt/control_rate)
+                
+                if frame_num % durarion == 0:
                     
                     # if frame_num == 400 :
                     #      self.get_info(robot_entity_cfg)
@@ -456,7 +459,7 @@ class Spillage_DataCollection():
 
         mix_all_pcd = self.functions.list_to_nparray(self.mix_all_pcd_list)[:record_len]
         sim_eepose = self.functions.list_to_nparray(self.record_ee_pose)[:record_len]
-        real_eepose = self.functions.eepose_sim2real_offset(sim_eepose)[:record_len].to("cpu")
+        real_eepose = self.functions.eepose_sim2real_offset(sim_eepose)[:record_len]
 
         spillage_amount = self.functions.list_to_nparray(self.spillage_amount)
         scoop_amount = self.functions.list_to_nparray(self.scooped_amount)
@@ -566,7 +569,8 @@ class Spillage_DataCollection():
 def main():
     """Main function."""
     # Load kit helper
-    sim_cfg = sim_utils.SimulationCfg(dt=1/256, device=args_cli.device)
+    sim_dt = 1 / 240
+    sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
     # Set main camera
     sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])
@@ -593,7 +597,7 @@ def main():
     ee_goals = np.load("./sample_trail/mean/mean_pose.npy")[start_step:]
 
 
-    env = Spillage_DataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, food_info = None)
+    env = Spillage_DataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, food_info = None, sim_dt = sim_dt)
     env.run_simulator(sim, scene)
 
 

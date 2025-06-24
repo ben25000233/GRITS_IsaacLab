@@ -1,13 +1,13 @@
 defaults:
   - task: food_scoop
 
-trial_name: "0618_single"
+trial_name: "0623_single"
 img_type: "rgbd"
 camera_view: 
   mode: "single" # multi
   direction: "back" # front
 proprioception: False
-guidance: False
+guidance: True
 validation: False
 check_traj : False
 
@@ -57,16 +57,16 @@ training:
 
 testing:
   device: "cuda:0"
-  ckpt_epoch: 500
-  guided_mode: "guided_dp" # post_processing
+  ckpt_epoch: 300
+  guided_mode: "guided_clean" # post_processing
   start_guided_iteration: 30
-  guided_weight: 3.
+  guided_weight: 1
   goal_guided:
     mode: "sum_all_frame_weighted"
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 1.0
+    weight: 0
   quatity_guided:
     mode: "AE"
     weight: 1.0

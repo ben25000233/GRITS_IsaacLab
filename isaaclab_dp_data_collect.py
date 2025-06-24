@@ -44,7 +44,7 @@ import os
 
 
 class Dp_dataCollection():
-    def __init__(self, mean_eepose_qua, init_pose = None, folder_name = None):
+    def __init__(self, mean_eepose_qua, init_pose = None, folder_name = None, sim_dt = 1/240):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
        
@@ -135,9 +135,9 @@ class Dp_dataCollection():
         back_depth_image  = self.back_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
         back_seg_image  = self.back_camera.data.output["semantic_segmentation"][0].cpu().numpy()
 
-        plt.imshow(back_depth_image)
-        plt.show()
-        simulation_app.close()
+        # plt.imshow(back_depth_image)
+        # plt.show()
+        # simulation_app.close()
 
         food_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "food", object_id = self.food_semantic_id)
         back_food_world = self.pcd_functions.transform_to_world(food_pcd[:, :3], self.gt_back)
@@ -256,8 +256,8 @@ class Dp_dataCollection():
         ee_goals = torch.tensor(self.mean_eepose_qua, device=sim.device)
 
         # modify the trajectory to simulation
-        modify_ee_goals = self.eepose_real2sim_offset(ee_goals)
-        modify_ee_goals = modify_ee_goals.clone().detach().to(sim.device)
+        modify_ee_goals = self.functions.eepose_real2sim_offset(ee_goals)
+        modify_ee_goals = torch.tensor(modify_ee_goals).to(sim.device)
         
         # Create buffers to store actions
         ik_commands = torch.zeros(scene.num_envs, diff_ik_controller.action_dim, device=self.device)
@@ -287,7 +287,7 @@ class Dp_dataCollection():
         
 
         # ori_goal_pose = torch.tensor(np.load("./sample_trail/col_03/ee_pose_qua.npy")[0])
-        # goal_pose = self.eepose_real2sim_offset([ori_goal_pose])[0]
+        # goal_pose = self.functions.eepose_real2sim_offset([ori_goal_pose])[0]
 
         # hvae no idea why semantic_filter does not work, so use the id_to_labels to filter first
         # Find the ID of the bowl in the semantic segmentation
@@ -310,8 +310,9 @@ class Dp_dataCollection():
         while simulation_app.is_running():
             # init set
             print(f"frame_num: {frame_num}")
-            ## joint state
-            # print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
+            # joint state
+            print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
+            
             ## eepose
             # print(self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7])
         
@@ -321,7 +322,6 @@ class Dp_dataCollection():
                 if frame_num == reset_frame :
                     # init_joint =  torch.tensor([[-0.5246,  0.3741,  0.7812, -1.9760, -1.2856,  1.6066, -0.0263, 0, 0]], device = sim.device)
                     init_joint =  torch.tensor(self.franka_init_pose, device = sim.device)
-                    # self.cal_spillage_scooped(scene = scene, reset = 1)
 
                 joint_vel = self.robot.data.default_joint_vel.clone()
                 joint_pos = init_joint
@@ -334,8 +334,11 @@ class Dp_dataCollection():
                 self.robot.reset()
             
             else :
-                # scooping speed
-                if frame_num % 5 == 0:
+                # set control rate
+                control_rate = 10
+                durarion = int(1/sim_dt/control_rate)
+                
+                if frame_num % durarion == 0:
                 
                     self.get_info(robot_entity_cfg)
                    
@@ -395,7 +398,8 @@ class Dp_dataCollection():
 
         mix_all_pcd = self.functions.list_to_nparray(self.mix_all_pcd_list)
         sim_eepose = self.functions.list_to_nparray(self.record_ee_pose)
-        real_eepose = self.functions.eepose_sim2real_offset(sim_eepose).to("cpu")
+        real_eepose = self.functions.eepose_sim2real_offset(sim_eepose)
+
 
         front_rgb_list = self.functions.list_to_nparray(self.front_rgb_list)
         front_depth_list = self.functions.list_to_nparray(self.front_depth_list)
@@ -416,63 +420,15 @@ class Dp_dataCollection():
         np.save(f'{output_dir}back_rgb.npy', back_rgb_list)
         np.save(f'{output_dir}back_depth.npy', back_depth_list)
 
-    
-    def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
-        # reset = 1 means record init spillage in experiment setting 
-        current_spillage = 0
-        scoop_amount = 0
 
-        rigid_object = scene["rigid_object"].data.body_link_state_w
-        y_pose = rigid_object[:,0, 1].to("cpu")
-        z_pose = rigid_object[:,0, 2].to("cpu")
-
-        spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
-        current_spillage = np.count_nonzero(spillage_mask)
-
-        scoop_mask = np.logical_or(z_pose > 0.15, np.logical_and(z_pose > 0, y_pose > 0))
-        scoop_amount = np.count_nonzero(scoop_mask)
-
-        if reset == 1:
-            init_amount_mask = z_pose > 0.03
-            self.init_amount_amount = np.count_nonzero(init_amount_mask)
-   
-
-        
-        if reset == 0:
-         
-            spillage_amount = current_spillage - self.pre_spillage[env_index]
-            # spillage_vol = spillage_amount * (self.ball_radius**3) * 10**9
-            # scoop_vol = scoop_amount * (self.ball_radius**3)* 10**9
-            
-            if int(spillage_amount) == 0:
-                self.binary_spillage[env_index].append(0)
-            else :
-                self.binary_spillage[env_index].append(1)
-    
-            if int(scoop_amount) == 0:
-                self.binary_scoop[env_index].append(0)
-            else :
-                self.binary_scoop[env_index].append(1)
-          
-
-            self.spillage_amount[env_index].append(int(spillage_amount))
-            self.scooped_amount[env_index].append(int(scoop_amount))
-            # self.spillage_vol[env_index].append(int(spillage_vol))
-            # self.scooped_vol[env_index].append(int(scoop_vol))
-
-
-            print(f"spillage amount :{int(spillage_amount)}")
-            print(f"scoop_num : {int(scoop_amount)}")
-       
-        self.pre_spillage[env_index] = int(current_spillage)
-        
     
 
 def main(traj = None, name = None):
 
     """Main function."""
     # Load kit helper
-    sim_cfg = sim_utils.SimulationCfg(dt=1/256, device=args_cli.device)
+    sim_dt = 1 / 240
+    sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
     # Set main camera
     sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])
@@ -490,7 +446,7 @@ def main(traj = None, name = None):
     
     ee_goals = traj
 
-    env = Dp_dataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, folder_name = name)
+    env = Dp_dataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, folder_name = name, sim_dt = sim_dt)
     env.run_simulator(sim, scene)
 
 
@@ -500,7 +456,7 @@ if __name__ == "__main__":
 
     root_dir = "sample_trail/all_eepose_qua"  # Change this to your folder path
     # br, co, ju, mb, sy, orl
-    subfolder = "brl_03.npy"
+    subfolder = "brm_02.npy"
 
     subfolder_path = os.path.join(root_dir, subfolder)
     issac = main(traj = np.load(subfolder_path), name = str(subfolder)[:-4])

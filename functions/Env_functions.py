@@ -129,16 +129,15 @@ class Env_functions():
 
     def add_rigid(self): 
     
-        mass = 0.1
-        friction = 0.5
+        mass = 0.002
+        r_radius = 0.007
+
+        friction = 0.7
+        ball_amount = 30
         
 
-        ball_amount = 10
-        r_radius = 0.003
-
-
         l_radius = 0.009
-        rigid_origins = self.define_origins(n = 4, layer = ball_amount, spacing=max(r_radius, l_radius) * 2)
+        rigid_origins = self.define_origins(n = 3, layer = ball_amount, spacing=max(r_radius, l_radius) * 2)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
 
 
@@ -315,7 +314,7 @@ class Env_functions():
             # Set x, y, and z coordinates for this layer
             env_origins[start_idx:end_idx, 0] = xx + 0.59 + noise
             env_origins[start_idx:end_idx, 1] = yy - 0.11 + noise
-            env_origins[start_idx:end_idx, 2] = layer * spacing + 0.1
+            env_origins[start_idx:end_idx, 2] = layer * spacing + noise + 0.1
 
         # Convert the origins to a list of lists and return
         return env_origins.tolist()
@@ -383,5 +382,5 @@ class TableTopSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(contact_offset = 0.001, rest_offset = 0.0001),
             semantic_tags = [("class", "bowl"), ("id", "2")],
         ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.575, -0.11, 0.02)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.575, -0.11, 0.03)),
     )

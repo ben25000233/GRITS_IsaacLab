@@ -126,7 +126,7 @@ class Pcd_functions():
 
     def from_ee_to_spoon(self, offset, ee_point):
         # Convert inputs to torch tensors
-        ee_point = ee_point.clone().detach().to("cpu")
+        ee_point = torch.tensor(ee_point).to("cpu")
         offsets = torch.tensor(offset, dtype=torch.float32)  # Shape: [N, 3]
 
         # Precompute constants

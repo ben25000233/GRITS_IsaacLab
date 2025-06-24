@@ -54,7 +54,7 @@ from functions.functions import functions
 
 
 class Grits():
-    def __init__(self, init_pose = None):
+    def __init__(self, init_pose = None, sim_dt = 1/240):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.spillage_predictor = spillage_predictor()
@@ -231,14 +231,14 @@ class Grits():
             images = [np.array(begin_rgb[0])] * 5
             depths = [np.array(self.back_depth_list[0])[0].astype(np.float32)] * 5 
             eepose = [np.array(self.record_ee_pose[0])[0].astype(np.float32)] * 5
-            seg_pcd = [np.array(self.mix_all_pcd_list[0])[0]]*5
+            seg_pcd = [np.array(self.mix_all_pcd_list[0])[0]]*3
 
             
         else:
             images = self.back_rgb_list[0][-5:]  
             depths = self.back_depth_list[0][-5 :]
             eepose = self.record_ee_pose[0][-5:]
-            seg_pcd = self.mix_all_pcd_list[0][-5:]
+            seg_pcd = self.mix_all_pcd_list[0][-3:]
 
         
         image_array = np.array(images)[:, :800, 80:]
@@ -260,7 +260,7 @@ class Grits():
         self.back_camera = scene["back_camera"]
         self.device = sim.device
 
-        reset_frame = 100
+        
 
 
         # Create controller
@@ -309,6 +309,11 @@ class Grits():
                 # print(f"food semantic id: {self.food_semantic_id}")
             if label_info.get("class") == "robot":
                 self.robot_semantic_id = int(semantic_id_str)
+
+        # set control rate
+        control_rate = 10
+        durarion = int(1/sim_dt/control_rate)
+        reset_frame = durarion * 5 -2
             
         # Simulation loop
         while simulation_app.is_running():
@@ -334,30 +339,34 @@ class Grits():
             
                 self.robot.write_joint_state_to_sim(joint_pos, joint_vel)
                 self.robot.reset()
+
             
             else :
-                # scooping speed
-                if frame_num % 5 == 0:
+   
+                if frame_num % durarion == 0:
                     
                     self.get_info(robot_entity_cfg)
+            
 
                     if current_goal_idx % self.action_horizon == 0 :
+                   
                         action = self.move_generate()
                         
                         print("current_goal_idx : ", current_goal_idx)
                         self.cal_spillage_scooped(scene = scene, reset = 0)
 
-                        if current_goal_idx != 0 : 
-                            
-                            pcd_list = torch.tensor(np.array(self.mix_all_pcd_list[0][-3:]), dtype = torch.float32).to("cuda:0")
-                            traj = self.qua_to_rotation_6d(action).to("cuda:0")
-                
-                            spillage_logic = self.spillage_predictor.validate(traj, pcd_list)
-                            spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
+                        # # for checking spillage
+                        # if current_goal_idx != 0 : 
+                        #     pcd_list = torch.tensor(np.array(self.mix_all_pcd_list[0][-3:]), dtype = torch.float32).to("cuda:0")
+                        #     traj = self.qua_to_rotation_6d(action).unsqueeze(0).to("cuda:0")
 
-                            print(spillage_prob)
-                            # self.pcd_functions.check_pcd_color(np.array(pcd_list[0].to("cpu")))
-                            # simulation_app.close()
+                        #     nor_traj = self.functions._denormalize(traj)[0]
+                        #     spillage_logic = self.spillage_predictor.validate(nor_traj, pcd_list)
+                        #     spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
+
+                        #     print(spillage_prob)
+                        #     # self.pcd_functions.check_pcd_color(np.array(pcd_list[0].to("cpu")))
+                        #     # simulation_app.close()
                     
                     goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
                     
@@ -484,7 +493,8 @@ class Grits():
 def main():
     """Main function."""
     # Load kit helper
-    sim_cfg = sim_utils.SimulationCfg(dt=1/256, device=args_cli.device)
+    sim_dt = 1 / 240
+    sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
     # Set main camera
     sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])

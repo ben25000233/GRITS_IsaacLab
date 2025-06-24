@@ -62,7 +62,7 @@ class LfD():
         self.diffusion_model.to(self.cfg["training"]["device"])
    
     
-        checkpoint = torch.load('./dp_model/experiments/' + self.cfg.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
+        checkpoint = torch.load('/media/hcis-s22/data/dp_experiments/' + self.cfg.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
                                 map_location=self.cfg.testing.device)
   
         ema = copy.deepcopy(self.diffusion_model)
@@ -194,7 +194,7 @@ class LfD():
         return food_center_pose[0:3, 3], goal_pose[0:3, 3]
     
     def _normalize(self, data, input_max, input_min, input_mean):
-
+      
         ranges = input_max - input_min
         data_normalize = torch.zeros_like(data)
         for i in range(3):
