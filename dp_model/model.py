@@ -20,6 +20,9 @@ from dynamics_model.test_spillage import spillage_predictor
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 
+from skopt import gp_minimize
+from skopt.space import Real
+
     
 # diffusion_policy/diffusion_policy/model/vision/multi_image_obs_encoder.py
 # trace/tbsim/models/base_models.py
@@ -292,9 +295,9 @@ class DiffusionPolicy(nn.Module):
         # pre_spillage = torch.log(pre_spillage)
         # make_smoothing_spline(x, y, lam=lam)
         guided_grad = torch.autograd.grad(pre_spillage, traj)[0]
-        guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=0, max = 0)
-        guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.003, max = 0.003)
-        guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
+        # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.003, max = 0.003)
+        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.003, max = 0.003)
+        # guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
 
 
         z = guided_grad[:, :, 2].squeeze(0).to('cpu')
@@ -400,8 +403,19 @@ class DiffusionPolicy(nn.Module):
                             # imagine_traj = self.quan_predictor.validate(current_pcd.unsqueeze(0), self.quan_goal.unsqueeze(0))
                             # guided_grad = self.quatity_weight * self.quantity_objective(clean_traj, imagine_traj)
 
+                            self.temp_traj = traj_guided_next.clone()
+                            self.guided_grad = guided_grad.clone()
+                            self.obs_in = obs_in.clone().float().to(self.device)
+                            # Define the search space for spillage_weight
+                            # search_space = [Real(0.0, 20.0, name='spillage_weight')]
+                            # result = gp_minimize(self.Bo_objective, search_space, n_calls=20, random_state=42)
+                            # optimal_spillage_weight = result.x[0]
+                            # print(f"Optimal spillage_weight: {optimal_spillage_weight}")
+                            # print()
+
                             traj_clone = traj_guided_next.clone()
                             traj_clone -= self.spillage_weight * guided_grad
+                            # traj_clone -= optimal_spillage_weight * guided_grad
                             traj_guided_next = traj_clone     
 
                             show_guided_traj.append(traj_guided_next.to("cpu"))          
@@ -580,6 +594,16 @@ class DiffusionPolicy(nn.Module):
 
         # return action, naction_pred[:,start:end], show_ori_traj, show_guided_traj
         return action
+    
+    def Bo_objective(self, weight):
+        traj_clone = self.temp_traj.clone()
+        # print("weight = ", weight)
+        # print(self.guided_grad.shape)
+        # print(traj_clone.shape)
+        traj_clone -= weight[0] * self.guided_grad
+        spillage_prob= self.spillage_predict(traj_clone, self.obs_in)
+
+        return float(spillage_prob)
 
 # ====================================================================================================================================
 def show_trajectory(ori_traj=None, guided_traj=None, opt_traj=None):
@@ -639,7 +663,7 @@ def show_trajectory(ori_traj=None, guided_traj=None, opt_traj=None):
     y_vals, z_vals = zip(*all_points)
     mean_y = (min(y_vals) + max(y_vals))/2
     mean_z = (min(z_vals) + max(z_vals))/2
-    ax.set_xlim(mean_y - 0.025, mean_y + 0.025)
+    ax.set_xlim(mean_y - 0.05, mean_y + 0.05)
     ax.set_ylim(mean_z - 0.025, mean_z + 0.025)
     # Show plot
     plt.show()

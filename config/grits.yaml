@@ -57,7 +57,7 @@ training:
 
 testing:
   device: "cuda:0"
-  ckpt_epoch: 300
+  ckpt_epoch: 400
   guided_mode: "guided_clean" # post_processing
   start_guided_iteration: 30
   guided_weight: 1
@@ -66,7 +66,7 @@ testing:
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 0
+    weight: 1 # 2, 1.
   quatity_guided:
     mode: "AE"
     weight: 1.0

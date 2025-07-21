@@ -60,10 +60,14 @@ class Grits():
         self.spillage_predictor = spillage_predictor()
         self.lfd = LfD()
 
+        config_dir = "config"
+        config_file_name = "grits.yaml"
+        self.cfg = configparser.get_config(config_dir = config_dir, file_name=config_file_name) 
+
         self.franka_init_pose = init_pose
     
 
-        self.gt_front = np.load("./real_cam_pose/front_cam2base.npy")
+        # self.gt_front = np.load("./real_cam_pose/front_cam2base.npy")
         self.gt_back = np.load("./real_cam_pose/back_cam2base.npy")
 
         self.ref_bowl = np.load("./ref_pcd/ref_bowl_pcd.npy")
@@ -121,9 +125,9 @@ class Grits():
     def get_info(self, robot_entity_cfg = None):
 
 
-        front_rgb_image  = self.front_camera.data.output["rgb"][0].cpu().numpy()
-        front_depth_image  = self.front_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
-        front_seg_image  = self.front_camera.data.output["semantic_segmentation"][0].cpu().numpy()
+        # front_rgb_image  = self.front_camera.data.output["rgb"][0].cpu().numpy()
+        # front_depth_image  = self.front_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
+        # front_seg_image  = self.front_camera.data.output["semantic_segmentation"][0].cpu().numpy()
 
         back_rgb_image  = self.back_camera.data.output["rgb"][0].cpu().numpy()
         back_depth_image  = self.back_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
@@ -165,14 +169,14 @@ class Grits():
 
         
         # get front_tool for get ref spoon pcd 
-        tool_pcd = self.pcd_functions.depth_to_point_cloud(front_depth_image[..., 0], front_seg_image[..., 0], object_type = "robot", object_id = self.robot_semantic_id)
-        front_tool_world = self.pcd_functions.transform_to_world(tool_pcd[:, :3], self.gt_front)
-        front_tool_world = front_tool_world[front_tool_world[:, 0] > 0.1]
+        # tool_pcd = self.pcd_functions.depth_to_point_cloud(front_depth_image[..., 0], front_seg_image[..., 0], object_type = "robot", object_id = self.robot_semantic_id)
+        # front_tool_world = self.pcd_functions.transform_to_world(tool_pcd[:, :3], self.gt_front)
+        # front_tool_world = front_tool_world[front_tool_world[:, 0] > 0.1]
         # front_tool_world = front_tool_world[front_tool_world[:, 2] < 0.2]
         # front_tool_world = self.pcd_functions.align_point_cloud(front_tool_world, target_points = 10000)
 
-        object_seg = np.full((front_tool_world.shape[0], 1), 5)
-        front_tool_world = np.hstack((front_tool_world, object_seg))
+        # object_seg = np.full((front_tool_world.shape[0], 1), 5)
+        # front_tool_world = np.hstack((front_tool_world, object_seg))
         
         # self.pcd_functions.check_pcd_color(front_tool_world)
         # simulation_app.close()
@@ -203,8 +207,8 @@ class Grits():
         trans_tool = np.hstack((trans_tool, object_seg))
  
 
-        # mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
-        mix_all_pcd = np.concatenate((trans_tool, back_tool_world, back_bowl_world, self.real_food), axis=0)
+        mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
+        # mix_all_pcd = np.concatenate((trans_tool, back_tool_world, back_bowl_world, self.real_food), axis=0)
         mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 30000)
         mix_all_nor_pcd = self.pcd_functions.nor_pcd(mix_all_pcd)
         # self.pcd_functions.check_pcd_color(mix_all_nor_pcd)
@@ -212,9 +216,9 @@ class Grits():
 
     
     
-        self.front_rgb_list[0].append(front_rgb_image)
-        self.front_depth_list[0].append(front_depth_image)
-        self.front_seg_list[0].append(front_seg_image)
+        # self.front_rgb_list[0].append(front_rgb_image)
+        # self.front_depth_list[0].append(front_depth_image)
+        # self.front_seg_list[0].append(front_seg_image)
 
         self.back_rgb_list[0].append(back_rgb_image)
         self.back_depth_list[0].append(back_depth_image)
@@ -222,7 +226,7 @@ class Grits():
 
         self.mix_all_pcd_list[0].append(mix_all_nor_pcd)
 
-    def move_generate(self):
+    def move_generate(self, guidance_trigger = False):
   
         if len(self.back_rgb_list[0]) == 1:
 
@@ -239,14 +243,16 @@ class Grits():
             depths = self.back_depth_list[0][-5 :]
             eepose = self.record_ee_pose[0][-5:]
             seg_pcd = self.mix_all_pcd_list[0][-3:]
+            # self.pcd_functions.check_pcd_color(np.array(seg_pcd[0]))
 
         
         image_array = np.array(images)[:, :800, 80:]
         depth_array = np.array(depths)[:, :800, 80:]
         eepose_array = np.array(eepose)
         seg_pcd_array = np.array(seg_pcd)
+ 
 
-        eeposes = self.lfd.run_model(image_array, depth_array, eepose_array, seg_pcd_array)
+        eeposes = self.lfd.run_model(image_array, depth_array, eepose_array, seg_pcd_array, guidance_trigger = guidance_trigger)
 
         return eeposes
 
@@ -256,7 +262,7 @@ class Grits():
         # Extract scene entities
         # note: we only do this here for readability.
         self.robot = scene["robot"]
-        self.front_camera = scene["front_camera"]
+        # self.front_camera = scene["front_camera"]
         self.back_camera = scene["back_camera"]
         self.device = sim.device
 
@@ -313,7 +319,7 @@ class Grits():
         # set control rate
         control_rate = 10
         durarion = int(1/sim_dt/control_rate)
-        reset_frame = durarion * 5 -2
+        reset_frame = durarion * 10 -2
             
         # Simulation loop
         while simulation_app.is_running():
@@ -350,7 +356,11 @@ class Grits():
 
                     if current_goal_idx % self.action_horizon == 0 :
                    
-                        action = self.move_generate()
+                        if self.cfg.guidance == True and current_goal_idx > 0 :
+                            guidance_trigger = True
+                        else :
+                            guidance_trigger = False
+                        action = self.move_generate(guidance_trigger = guidance_trigger)
                         
                         print("current_goal_idx : ", current_goal_idx)
                         self.cal_spillage_scooped(scene = scene, reset = 0)
@@ -367,8 +377,20 @@ class Grits():
                         #     print(spillage_prob)
                         #     # self.pcd_functions.check_pcd_color(np.array(pcd_list[0].to("cpu")))
                         #     # simulation_app.close()
+
+                    # if current_goal_idx < 72 :
+                    #     goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
+                    # elif current_goal_idx >=72 and current_goal_idx <= 84:
+                    #     if current_goal_idx == 72:
+                    #         goal_pose = torch.tensor(action[0]).to(self.device)
+                    #     goal_pose[1] += current_goal_idx*0.0005
+                    # else :
+                    #     break
                     
-                    goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
+                    if current_goal_idx < 90 :
+                        goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
+                    else :
+                        break
                     
                     joint_pos = self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids]
                     ik_commands[:] = goal_pose
@@ -380,8 +402,8 @@ class Grits():
                     # change goal
                     current_goal_idx += 1
 
-                    if current_goal_idx >= 144 :
-                        break
+         
+
               
                     
             
@@ -420,6 +442,33 @@ class Grits():
             goal_marker.visualize(ee_goals[current_goal_idx].unsqueeze(0)[:, 0:3], ee_goals[current_goal_idx].unsqueeze(0)[:, 3:7])
             '''
 
+        r_radius = 0.009
+        mass = 0.003
+        ball_amount = 10
+
+        file_name = f"result/R{r_radius}_M{mass}_A{ball_amount}_W{self.cfg.testing.spillage_guided.weight}.json"
+
+        try:
+            with open(file_name, "r") as json_file:
+                spillage_data = json.load(json_file)
+        except FileNotFoundError:
+            spillage_data = {"r_radius": r_radius,
+                             "mass": mass,
+                             "ball_amount": ball_amount,
+                             "guided_weight": self.cfg.testing.spillage_guided.weight,
+                             "spillage_scoop": [],}
+
+
+        # Append the current spillage amount to the array
+        spillage_scoop = [sum(self.spillage_amount[0]), self.scooped_amount[0][-1]]
+        spillage_data["spillage_scoop"].append(spillage_scoop)
+
+        # Write the updated array back to the JSON file
+        with open(file_name, "w") as json_file:
+            json.dump(spillage_data, json_file, indent=4)
+
+        print(f"Spillage data saved: {spillage_data}")
+
     def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
         # reset = 1 means record init spillage in experiment setting 
         current_spillage = 0
@@ -432,7 +481,7 @@ class Grits():
         spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
         current_spillage = np.count_nonzero(spillage_mask)
 
-        scoop_mask = np.logical_or(z_pose > 0.15, np.logical_and(z_pose > 0, y_pose > 0))
+        scoop_mask = np.logical_or(z_pose > 0.12, np.logical_and(z_pose > 0, y_pose > 0))
         scoop_amount = np.count_nonzero(scoop_mask)
 
         if reset == 1:
@@ -493,7 +542,8 @@ class Grits():
 def main():
     """Main function."""
     # Load kit helper
-    sim_dt = 1 / 240
+    sim_dt = 1 / 120
+
     sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
     # Set main camera

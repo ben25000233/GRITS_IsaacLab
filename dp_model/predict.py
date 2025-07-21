@@ -226,7 +226,7 @@ class LfD():
             transforms.ToTensor(),
         ])(img)
     
-    def run_model(self, image_list, depth_list, eepose_list, seg_pcd):
+    def run_model(self, image_list, depth_list, eepose_list, seg_pcd, guidance_trigger=False):
         
         rotation_transformer_forward = RotationTransformer('quaternion', 'rotation_6d')
         rotation_transformer_backward = RotationTransformer('rotation_6d', 'quaternion')
@@ -238,7 +238,6 @@ class LfD():
         depth_input = []
         ee_input = []
 
-        start_guidance = False
         with torch.no_grad():
             step = 0
             for i in range(image_list.shape[0]):
@@ -269,7 +268,7 @@ class LfD():
             # print('obs_in', obs_in.shape) # torch.Size([1, 5, 4, 240, 320])
             # print(np.array(eepose_list).shape) # (5, 7)
             
-            action = self.policy.predict_action((obs_in, ee_in, seg_pcd, self.cfg.guidance))  
+            action = self.policy.predict_action((obs_in, ee_in, seg_pcd, guidance_trigger))  
     
 
             # transform rotate

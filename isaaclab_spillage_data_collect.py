@@ -81,8 +81,7 @@ class Spillage_DataCollection():
         self.count = int(self.config['count'])
         count = int(self.count) + 1
         self.config['count'] = count
-        with open(self.config_file, 'w') as file:
-            yaml.safe_dump(self.config, file)
+        
 
         
         self.pcd_functions = Pcd_functions()
@@ -291,16 +290,16 @@ class Spillage_DataCollection():
         diff_ik_controller = DifferentialIKController(diff_ik_cfg, num_envs=scene.num_envs, device=sim.device)
 
         # Markers
-        frame_marker_cfg = FRAME_MARKER_CFG.copy()
-        frame_marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
-        ee_marker = VisualizationMarkers(frame_marker_cfg.replace(prim_path="/Visuals/ee_current"))
-        goal_marker = VisualizationMarkers(frame_marker_cfg.replace(prim_path="/Visuals/ee_goal"))
+        # frame_marker_cfg = FRAME_MARKER_CFG.copy()
+        # frame_marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
+        # ee_marker = VisualizationMarkers(frame_marker_cfg.replace(prim_path="/Visuals/ee_current"))
+        # goal_marker = VisualizationMarkers(frame_marker_cfg.replace(prim_path="/Visuals/ee_goal"))
 
         # real-world trajectory
         ee_goals = torch.tensor(self.mean_eepose_qua, device=sim.device)
 
         # modify the trajectory to simulation
-        modify_ee_goals = self.eepose_real2sim_offset(ee_goals)
+        modify_ee_goals = self.functions.eepose_real2sim_offset(ee_goals)
         modify_ee_goals = torch.tensor(modify_ee_goals).to(sim.device)
         
         # Create buffers to store actions
@@ -355,7 +354,7 @@ class Spillage_DataCollection():
             # init set
             print(f"frame_num: {frame_num}")
             ## joint state
-            print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
+            # print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
             ## eepose
             # print(self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7])
         
@@ -384,19 +383,14 @@ class Spillage_DataCollection():
                 
                 if frame_num % durarion == 0:
                     
-                    # if frame_num == 400 :
-                    #      self.get_info(robot_entity_cfg)
+
                     
                     self.get_info(robot_entity_cfg)
-                    # offset = self.apply_offset(current_goal_idx)
-                    # modify_ee_goals += offset
+                    offset = self.apply_offset(current_goal_idx)
+                    modify_ee_goals += offset
                     
                     goal_pose = modify_ee_goals[current_goal_idx]
 
-                    # goal_pose = modify_ee_goals[0]
-                    # goal_pose[3:-1] = 0
-                    # goal_pose[4] = 1
-                    # goal_pose[-1] = 0
           
                     
                     joint_pos = self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids]
@@ -478,13 +472,17 @@ class Spillage_DataCollection():
         
 
         
-        with open("food_info.json", "r") as file:
-            food_info = json.load(file)
-            file.close()
+        # with open("food_info.json", "r") as file:
+        #     food_info = json.load(file)
+        #     file.close()
+
+        with open(self.config_file, 'w') as file:
+            yaml.safe_dump(self.config, file)
 
         
         data_dict = {
-            'eepose' : real_eepose,
+            'real_eepose' : real_eepose,
+            'sim_eepose' : sim_eepose,
             'mix_all_pcd' : mix_all_pcd,
             'spillage_amount': spillage_amount,
             # 'spillage_vol': spillage_vol,
@@ -492,20 +490,20 @@ class Spillage_DataCollection():
             'scoop_amount': scoop_amount,
             # 'scoop_vol': scoop_vol,
             'binary_scoop' : binary_scoop,
-            'r_radius' : food_info["r_radius"],
-            'l_radius' :food_info["l_radius"],
-            'mass' : food_info["mass"],
-            'friction' : food_info["friction"],
+            # 'r_radius' : food_info["r_radius"],
+            # 'l_radius' :food_info["l_radius"],
+            # 'mass' : food_info["mass"],
+            # 'friction' : food_info["friction"],
 
             'amount' : self.init_amount_amount,
             # 'shape' : self.food_label,
         }
 
-        print(binary_spillage.shape)
+        # print(binary_spillage.shape)
 
         import os 
         print("store data")
-        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/"
+        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/6_27/"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 

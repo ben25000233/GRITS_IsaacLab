@@ -20,6 +20,8 @@ from isaaclab.sensors import CameraCfg, TiledCameraCfg
 from isaaclab_asset.spoon_franka import SCOOP_FRANKA_CFG 
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.utils import configclass
+import isaacsim.core.utils.prims as prim_utils
+
 
 
 class Env_functions():
@@ -129,15 +131,24 @@ class Env_functions():
 
     def add_rigid(self): 
     
-        mass = 0.002
-        r_radius = 0.007
+        # r_radius = round(random.uniform(0.0025, 0.01), 4)
+        # l_radius = round(random.uniform(0.0025, 0.01), 4)
+        # mass = round(random.uniform(0.0001, 0.005), 4)
+        # friction = round(random.uniform(0, 1),2)
+        # max_num = int(256/pow(2, (r_radius - 0.0025)*1000)) 
+        # ball_amount = random.randint(1, max(1, max_num))+2
+        # n = random.randint(3, 5)
 
-        friction = 0.7
-        ball_amount = 30
-        
+        r_radius = 0.009
+        l_radius = 0.008
+        mass = 0.003
+        friction = 0.3
+        ball_amount = 10
+        n = 4
 
-        l_radius = 0.009
-        rigid_origins = self.define_origins(n = 3, layer = ball_amount, spacing=max(r_radius, l_radius) * 2)
+
+
+        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
 
 
@@ -147,6 +158,7 @@ class Env_functions():
             mass_props=sim_utils.MassPropertiesCfg(mass=mass),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0)),
+            # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 1.0)),
             physics_material = sim_utils.RigidBodyMaterialCfg(static_friction=friction, dynamic_friction=friction),
         )
 
@@ -192,17 +204,21 @@ class Env_functions():
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
         obj_cfg = random.choice(shapes)
         obj_cfg = cfg_sphere
+        
 
         obj_cfg.semantic_tags = [("class", "food")]
 
 
         for idx, origin in tqdm.tqdm(enumerate(rigid_origins), total=len(rigid_origins)):
             obj_cfg.func(f"/World/rigid/Object{idx:02d}", obj_cfg, translation=origin)
-
-            
+            # obj_cfg.func(f"/World/envs/env_00/rigid/Object{idx:02d}", obj_cfg, translation=origin)
+            # obj_cfg.func(f"/World/envs/env_01/rigid/Object{idx:02d}", obj_cfg, translation=origin)
+            # prim_utils.create_prim
 
         rigid_cfg = RigidObjectCfg(
             prim_path=f"/World/rigid/Object.*",
+            # prim_path="/World/envs/env_00/rigid/Object.*",
+            # prim_path="/World/envs/env_.*/rigid/Object.*",
             spawn=None,
             init_state=RigidObjectCfg.InitialStateCfg(),
             # debug_vis=True,
@@ -307,14 +323,18 @@ class Env_functions():
 
         # Fill in the coordinates for each layer
         for layer in range(layer):
-            noise = round(random.uniform(0.002, 0.01), 4)
+            noise = round(random.uniform(0.002, 0.02), 4)
             start_idx = layer * n * n
             end_idx = start_idx + n * n
 
             # Set x, y, and z coordinates for this layer
-            env_origins[start_idx:end_idx, 0] = xx + 0.59 + noise
-            env_origins[start_idx:end_idx, 1] = yy - 0.11 + noise
-            env_origins[start_idx:end_idx, 2] = layer * spacing + noise + 0.1
+            env_origins[start_idx:end_idx, 0] = xx + 0.58 + noise
+            env_origins[start_idx:end_idx, 1] = yy - 0.12 + noise
+
+            # env_origins[start_idx:end_idx, 0] = xx + 0.52
+            # env_origins[start_idx:end_idx, 1] = yy - 0.13
+
+            env_origins[start_idx:end_idx, 2] = layer * spacing + 0.12
 
         # Convert the origins to a list of lists and return
         return env_origins.tolist()
@@ -362,11 +382,7 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     rigid_object = env_functions.add_rigid()
     
 
-
-    # front_camera = add_camera("front")
-    # back_camera = add_camera("back")
-
-    front_camera = env_functions.add_camera("front")
+    # front_camera = env_functions.add_camera("front")
     back_camera = env_functions.add_camera("back")
 
     
@@ -374,7 +390,7 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     bowl = AssetBaseCfg(
         prim_path="/World/envs/env_.*/bowl",
         spawn=sim_utils.UsdFileCfg(
-            usd_path="./isaaclab_asset/USD/tool/bowl/bowl.usd", 
+            usd_path="./isaaclab_asset/USD/tool/bowl/friction_bowl.usd", 
             # usd_path="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/tool/spoon/spoon.usd", 
             scale=(1, 1, 1), 
             # making a rigid object static

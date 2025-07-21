@@ -70,8 +70,7 @@ class SensorFusion(nn.Module):
 
 
     def ee_normalize(self, data):
-        # print(data.shape)
-        # exit()
+
         input_range = torch.load('input_range.pt')
 
         self.input_max = input_range[0,:]
