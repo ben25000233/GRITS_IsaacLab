@@ -245,6 +245,7 @@ class DiffusionPolicy(nn.Module):
 
         # forward diffusion process
         noise = torch.randn(traj.shape, device=traj.device)
+        
         timesteps = torch.randint(
             0, self.noise_scheduler.config.num_train_timesteps, 
             (traj.shape[0],), device=traj.device).long()
@@ -358,6 +359,11 @@ class DiffusionPolicy(nn.Module):
             dtype=condition_data.dtype,
             device=condition_data.device,
             generator=generator)
+
+        # fix init noise traj for check 
+        traj = np.load('traj_init.npy')
+        traj = torch.tensor(traj).to(self.device)
+
         traj_guided = traj.clone()
     
         # set step values

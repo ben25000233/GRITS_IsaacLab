@@ -21,12 +21,33 @@ from isaaclab_asset.spoon_franka import SCOOP_FRANKA_CFG
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.utils import configclass
 import isaacsim.core.utils.prims as prim_utils
+from pyconfigparser import configparser
+import yaml
 
 
 
 class Env_functions():
     def __init__(self):
-        pass
+        config_dir = "config"
+        config_file_name = "grits.yaml"
+        self.cfg = configparser.get_config(config_dir=config_dir, file_name=config_file_name)
+
+
+        with open("noise_pairs.yaml", "r") as stream:
+            noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
+
+
+        noise_index = noise_cfg["index"]
+        self.noise = noise_cfg["noises"][noise_index]
+
+        if noise_index == 49 :
+            noise_cfg["index"] = 0
+        else :
+            noise_cfg["index"] += 1
+      
+        with open("noise_pairs.yaml", "w") as yaml_file:
+            yaml.dump(noise_cfg, yaml_file, default_flow_style=False)
+
     def add_soft(self): 
 
         r_radius = round(random.uniform(0.0025, 0.01), 4)
@@ -139,14 +160,15 @@ class Env_functions():
         # ball_amount = random.randint(1, max(1, max_num))+2
         # n = random.randint(3, 5)
 
-        r_radius = 0.009
-        l_radius = 0.008
-        mass = 0.003
-        friction = 0.3
-        ball_amount = 10
-        n = 4
 
 
+        r_radius = self.cfg["food_property"]["r_radius"]
+        l_radius = self.cfg["food_property"]["l_radius"]
+        mass = self.cfg["food_property"]["mass"]
+        friction = self.cfg["food_property"]["friction"]
+        ball_amount = self.cfg["food_property"]["ball_amount"]
+        ball_shape = self.cfg["food_property"]["shape"]
+        n = self.cfg["food_property"]["len"]
 
         rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
@@ -202,8 +224,15 @@ class Env_functions():
         # )
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
-        obj_cfg = random.choice(shapes)
-        obj_cfg = cfg_sphere
+        # obj_cfg = random.choice(shapes)
+        if ball_shape == "sphere":
+            obj_cfg = cfg_sphere    
+        elif ball_shape == "cone":
+            obj_cfg = cfg_cone
+        elif ball_shape == "cylinder":
+            obj_cfg = cfg_cylinder
+        elif ball_shape == "cube":  
+            obj_cfg = cfg_cube
         
 
         obj_cfg.semantic_tags = [("class", "food")]
@@ -319,17 +348,16 @@ class Env_functions():
         xx = xx.flatten() * spacing - spacing * (n - 1) / 2
         yy = yy.flatten() * spacing - spacing * (n - 1) / 2
 
-        
 
         # Fill in the coordinates for each layer
         for layer in range(layer):
-            noise = round(random.uniform(0.002, 0.02), 4)
+    
             start_idx = layer * n * n
             end_idx = start_idx + n * n
 
             # Set x, y, and z coordinates for this layer
-            env_origins[start_idx:end_idx, 0] = xx + 0.58 + noise
-            env_origins[start_idx:end_idx, 1] = yy - 0.12 + noise
+            env_origins[start_idx:end_idx, 0] = xx + 0.58 + self.noise[0]*layer*0.1*((-1)**layer)
+            env_origins[start_idx:end_idx, 1] = yy - 0.12 + self.noise[1]*layer*0.1*((-1)**layer)
 
             # env_origins[start_idx:end_idx, 0] = xx + 0.52
             # env_origins[start_idx:end_idx, 1] = yy - 0.13

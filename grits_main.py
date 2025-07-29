@@ -6,6 +6,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description="Tutorial on using the differential IK controller.")
 parser.add_argument("--robot", type=str, default="franka_panda", help="Name of the robot.")
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to spawn.")
+
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -442,11 +443,14 @@ class Grits():
             goal_marker.visualize(ee_goals[current_goal_idx].unsqueeze(0)[:, 0:3], ee_goals[current_goal_idx].unsqueeze(0)[:, 3:7])
             '''
 
-        r_radius = 0.009
-        mass = 0.003
-        ball_amount = 10
+        r_radius = self.cfg["food_property"]["r_radius"]
+        mass = self.cfg["food_property"]["mass"]
+        friction = self.cfg["food_property"]["friction"]
+        ball_amount = self.cfg["food_property"]["ball_amount"]
+        shape = self.cfg["food_property"]["shape"]
+        weight = self.cfg.testing.spillage_guided.weight
 
-        file_name = f"result/R{r_radius}_M{mass}_A{ball_amount}_W{self.cfg.testing.spillage_guided.weight}.json"
+        file_name = f"result/base/R{r_radius}_M{mass}_A{ball_amount}_F{friction}_S{shape}_W{weight}.json"
 
         try:
             with open(file_name, "r") as json_file:
@@ -455,7 +459,7 @@ class Grits():
             spillage_data = {"r_radius": r_radius,
                              "mass": mass,
                              "ball_amount": ball_amount,
-                             "guided_weight": self.cfg.testing.spillage_guided.weight,
+                             "guided_weight": weight,
                              "spillage_scoop": [],}
 
 
