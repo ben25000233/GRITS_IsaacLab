@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 
-file_name = f"parallel/mass/0.005/R0.009_M0.005_A10_W7.json"
+file_name = f"base/R0.009_M0.003_A9_F0.5_Ssphere_W7.json"
 with open(file_name, "r") as json_file:
     spillage_data = json.load(json_file)
 
@@ -20,9 +20,6 @@ print(f"scoop_failure_rate : {(len(all_array) - len(scoop_success_array))/len(al
 print(f"spillage_rate : {spillage_amount/len(all_array)}")
 # print(f"Mean of spillage : {np.mean(spillage_array)}")
 print(f"success_rate : {len(success_array)/len(all_array)}")
-
-
-
 
 
 
@@ -51,17 +48,17 @@ if chart_type == "bar":
             )
 
     plt.xlim(0, 10)
-    plt.ylim(0, 25)
+    plt.ylim(0, 30)
     plt.title("Spillage Amount Distribution", fontsize=16)
     plt.xlabel("Spillage Amount", fontsize=14)
     plt.ylabel("Frequency", fontsize=14)
     plt.legend(fontsize=6)
     plt.tight_layout()
 
-    # # Save the histogram as an image (optional)
-    # plt.savefig(f"{file_name}_spillage_histogram.png")
+    # Save the histogram as an image (optional)
+    plt.savefig(f"{file_name}_spillage_histogram.png")
 
-    # # Show the histogram
+    # Show the histogram
     # plt.show()
 elif chart_type == "pie":
     # Count occurrences of each unique value

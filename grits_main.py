@@ -357,7 +357,7 @@ class Grits():
 
                     if current_goal_idx % self.action_horizon == 0 :
                    
-                        if self.cfg.guidance == True and current_goal_idx > 0 :
+                        if self.cfg.guidance == True and current_goal_idx >= 0 :
                             guidance_trigger = True
                         else :
                             guidance_trigger = False
@@ -485,7 +485,7 @@ class Grits():
         spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
         current_spillage = np.count_nonzero(spillage_mask)
 
-        scoop_mask = np.logical_or(z_pose > 0.12, np.logical_and(z_pose > 0, y_pose > 0))
+        scoop_mask = np.logical_or(z_pose > 0.115, np.logical_and(z_pose > 0, y_pose > 0))
         scoop_amount = np.count_nonzero(scoop_mask)
 
         if reset == 1:

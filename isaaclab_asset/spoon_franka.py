@@ -18,6 +18,8 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 from isaaclab.sim.converters import UrdfConverterCfg
+import os
+usd_file_path = os.path.abspath("./isaaclab_asset/USD/franka/spoon_franka.usd")
 
 ##
 # Configuration
@@ -56,7 +58,7 @@ FRANKA_PANDA_CFG = ArticulationCfg(
     # ),
 
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/hcis-s22/benyang/scoop-env/isaaclab_grits/isaaclab_asset/USD/franka/spoon_franka.usd",
+        usd_path=usd_file_path,
         activate_contact_sensors=False,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

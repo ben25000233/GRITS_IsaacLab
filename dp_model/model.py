@@ -297,7 +297,7 @@ class DiffusionPolicy(nn.Module):
         # make_smoothing_spline(x, y, lam=lam)
         guided_grad = torch.autograd.grad(pre_spillage, traj)[0]
         # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.003, max = 0.003)
-        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.003, max = 0.003)
+        guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.03, max = 0.03)
         # guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
 
 
