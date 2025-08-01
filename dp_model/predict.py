@@ -61,12 +61,13 @@ class LfD():
 
         self.diffusion_model.to(self.cfg["training"]["device"])
    
-    
-        # checkpoint = torch.load('/media/hcis-s22/data/dp_experiments/' + self.cfg.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
-        #                         map_location=self.cfg.testing.device)
-
-        checkpoint = torch.load('/workspace/' + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
+        # for local running
+        checkpoint = torch.load('/media/hcis-s22/data/dp_experiments/' + self.cfg.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
                                 map_location=self.cfg.testing.device)
+
+        # for docker
+        # checkpoint = torch.load('/workspace/' + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
+        #                         map_location=self.cfg.testing.device)
                                 
   
         ema = copy.deepcopy(self.diffusion_model)

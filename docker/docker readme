@@ -2,6 +2,8 @@
 
 ./docker/container.py start
 
+# modify ckpt path in predict.py line 65 
+
 
 docker run --name isaac-lab --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
    -e "PRIVACY_CONSENT=Y" \
@@ -17,6 +19,7 @@ docker run --name isaac-lab --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" 
    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+   -v /media/hcis-s22/data/dp_experiments/0623_single/ckpt:/workspace/ckpt \
    isaac-lab-base
 
 
