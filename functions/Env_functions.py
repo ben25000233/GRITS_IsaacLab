@@ -170,7 +170,7 @@ class Env_functions():
         ball_shape = self.cfg["food_property"]["shape"]
         n = self.cfg["food_property"]["len"]
 
-        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2)
+        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, x_offset = 0.005)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
 
 
@@ -325,7 +325,7 @@ class Env_functions():
 
         return camera
 
-    def define_origins(self, n: int, layer: int, spacing: float) -> list[list[float]]:
+    def define_origins(self, n: int, layer: int, spacing: float, x_offset: float) -> list[list[float]]:
         """
         Defines the origins of a 3D grid with n * n particles per layer and m layers stacked along the z-axis.
 
@@ -342,11 +342,11 @@ class Env_functions():
 
         # Initialize a tensor to store all origins
         env_origins = torch.zeros(num_origins, 3)
-
+        x_offset = 0
         # Create 2D grid coordinates for the n x n grid in each layer
         xx, yy = torch.meshgrid(torch.arange(n), torch.arange(n), indexing="xy")
-        xx = xx.flatten() * spacing - spacing * (n - 1) / 2
-        yy = yy.flatten() * spacing - spacing * (n - 1) / 2
+        xx = xx.flatten() * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
+        yy = yy.flatten() * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
 
 
         # Fill in the coordinates for each layer

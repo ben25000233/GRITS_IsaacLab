@@ -12,17 +12,20 @@ spillage_counts = []
 weights = [3, 5, 7]
 
 r_radius = 0.009
-mass = 0.005
-ball_amount = 10
+mass = 0.003
+ball_amount = 9
+friction = 0.8
+shape = "sphere"
 
-file_root = f"./parallel/mass/0.005"
+
+file_root = f"./friction/{friction}"
 # Initialize arrays to store rates for each weight
 metrics = ['Unspillage Rate', 'Scoop Success Rate', 'Success Rate']
 rates_by_weight = []
 
 # Load data for each weight
 for weight in weights:
-    file_name = f"{file_root}/R{r_radius}_M{mass}_A{ball_amount}_W{weight}.json"
+    file_name = f"{file_root}/R{r_radius}_M{mass}_A{ball_amount}_F{friction}_S{shape}_W{weight}.json"
     with open(file_name, "r") as json_file:
         spillage_data = json.load(json_file)
 

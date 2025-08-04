@@ -66,16 +66,16 @@ testing:
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 6 # 3,5,7
+    weight: 3 # 3,5,7
   quatity_guided:
     mode: "AE"
     weight: 1.0
 
 food_property:
-  r_radius : 0.009
+  r_radius : 0.005
   l_radius : 0.008
   mass : 0.003
-  friction : 0.5
-  ball_amount : 9
+  friction : 0.8
+  ball_amount : 30
   shape : "sphere"
   len : 4
