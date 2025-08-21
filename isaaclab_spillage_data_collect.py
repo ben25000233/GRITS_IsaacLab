@@ -481,6 +481,9 @@ class Spillage_DataCollection():
         with open(self.config_file, 'w') as file:
             yaml.safe_dump(self.config, file)
 
+        spillage_amount[0] = 0
+        spillage_vol[0] = 0
+
         
         data_dict = {
             'real_eepose' : real_eepose,

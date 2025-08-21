@@ -28,7 +28,7 @@ lr: 0.001
 beta1: 0.9
 seed: 1234
 max_epoch: 500
-batch_size: 96
+batch_size: 48
 ep_length: 50
 zdim: 128
 action_dim: 4s
@@ -42,15 +42,15 @@ load : False
 model_path: "./../../spillage_ckpt/epoch49.pt"
 # logging_folder: logging/
 
-num_envs : 5
-collect_time : 3
-n_time_steps : 10
+num_envs : 1
+collect_time : 1
+n_time_steps : 7
 
 
 # path to dataset hdf5 file'
-# dataset: "./test_dataset/"
-dataset: "/media/hcis-s22/data/new_dataset/dataset/"
+dataset: "/workspace/dataset/"
+# dataset: "/media/hcis-s22/data/new_dataset/dataset/"
 
 val_ratio: 0.2
 cuda: True
-num_workers: 1
+num_workers: 20

@@ -136,7 +136,7 @@ class Env_functions():
         # ---- determine which cfg file be used (cfg_sphere / str_cfg)
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
         obj_cfg = random.choice(shapes)
-        # obj_cfg = cfg_cylinder
+        # obj_cfg = cfg_sphere
 
         obj_cfg.semantic_tags = [("class", "food")]
 
@@ -239,6 +239,7 @@ class Env_functions():
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
         obj_cfg = random.choice(shapes)
+        # obj_cfg = cfg_sphere
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
 
         

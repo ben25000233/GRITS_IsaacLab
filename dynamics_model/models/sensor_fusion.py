@@ -75,39 +75,49 @@ class SensorFusion(nn.Module):
 
         self.input_max = input_range[0,:]
         self.input_min = input_range[1,:]
-        self.input_mean = input_range[2,:]
+        # self.input_mean = input_range[2,:]
 
 
         ranges = self.input_max - self.input_min
-        # data = data.unsqueeze(0)
+        nor_traj = []
 
-        data_normalize = torch.zeros_like(data)
+        if data.ndim == 2 :
+            data = data.unsqueeze(0)
 
-        for i in range(3):
+        for batch in range(data.shape[0]):
+            mono_data = data[batch]
             
-            if ranges[i] < 1e-4:
-                # If variance is small, shift to zero-mean without scaling
-                
-                data_normalize[:, i] = data[:, i] - self.input_mean[i]
-            else:
-                # Scale to [-1, 1] range
-                data_normalize[:, i] = -1 + 2 * (data[:, i] - self.input_min[i]) / ranges[i]   
+            data_normalize = torch.zeros_like(mono_data)
+
+            for i in range(3):
+                '''
+                if ranges[i] < 1e-4:
+                    # If variance is small, shift to zero-mean without scaling
+                    data_normalize[:, i] = mono_data[:, i] - self.input_mean[i]
+                else:
+                    # Scale to [-1, 1] range
+                    data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]   
+                '''
+                data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]
             
-            # data_normalize[:, i] = -1 + 2 * (data[:, i] - self.input_min[i]) / ranges[i]  
+            data_normalize[:, 3:] = mono_data[:, 3:]
+            nor_traj.append(data_normalize)      
 
-        data_normalize[:, 3:] = data[:, 3:]
-
-        b,c = data_normalize.shape
+        nor_traj = torch.stack(nor_traj)
+        a,b,c = nor_traj.shape
     
-        output = data_normalize.reshape(1, b*c)
+        output = nor_traj.reshape(a, b*c)
    
 
         return output
 
     # def forward_encoder(self, ee_pose, ee_pcd, hand_depth, front_depth, hand_pcd, front_pcd, hand_seg, front_seg):
     def forward_encoder(self, ee_pose, front_pcd, ):
-        image_num, _, _ = front_pcd.shape
-        batch_size = 1
+        if front_pcd.ndim == 3 :
+            image_num, _, _ = front_pcd.shape
+            batch_size = 1
+        else : 
+            batch_size, image_num, _, _ = front_pcd.shape
   
         combine_depth = []
         combine_pcd = []
@@ -158,9 +168,10 @@ class SensorFusion(nn.Module):
             # print(sample_pcd.mean(dim=0))
             # exit()
             
-            
+            if front_pcd.ndim == 3:
+                front_pcd = front_pcd.unsqueeze(0)
        
-            front_pcd_out = self.obs_pcd_encoder.encode(front_pcd[i, :, :].unsqueeze(0))   # shpae : torch.Size([batch_size , 256])
+            front_pcd_out = self.obs_pcd_encoder.encode(front_pcd[:, i, :, :].unsqueeze(0))   # shpae : torch.Size([batch_size , 256])
             
             # combine_pcd.append(hand_pcd_out)
             combine_pcd.append(front_pcd_out)

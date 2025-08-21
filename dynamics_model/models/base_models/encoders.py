@@ -23,7 +23,11 @@ class obs_pcd_Encoder(nn.Module):
 
 
     def encode(self, pcd):
+
+        if pcd.ndim == 4:
+            pcd = pcd.squeeze(0)
         output_pcd = self.model(pcd)
+   
         batch_size, x, y = output_pcd.shape
         output_pcd = output_pcd.reshape(batch_size, x* y)
         
@@ -69,9 +73,11 @@ class ee_pose_Encoder(nn.Module):
         # Ensure input dtype matches model parameters dtype
         eepose = eepose.to(next(self.eepose_encoder.parameters()).dtype)
         out_eepose = self.eepose_encoder(eepose)
+        if out_eepose.ndim == 2 :
+            out_eepose = out_eepose.unsqueeze(0)
   
-        a,b = out_eepose.shape
-        out_eepose = out_eepose.reshape(1, a*b)
+        a,b,c = out_eepose.shape
+        out_eepose = out_eepose.reshape(a, b*c)
   
         return out_eepose
     

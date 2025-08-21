@@ -7,6 +7,6 @@ NUM_RUNS=3000
 run:
 	@for i in $(shell seq 1 $(NUM_RUNS)); do \
 		echo "Run #$$i"; \
-#		python isaaclab_spillage_data_collect.py --headless; \
-		python isaaclab_spillage_data_collect.py; \
+		python isaaclab_spillage_data_collect.py --headless; \
+#		python isaaclab_spillage_data_collect.py; \
 	done
