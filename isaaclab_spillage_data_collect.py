@@ -50,6 +50,9 @@ from functions.pcd_functions import Pcd_functions
 from functions.Env_functions import TableTopSceneCfg
 from functions.functions import functions
 
+from pyconfigparser import configparser
+
+
 
 
 
@@ -81,9 +84,12 @@ class Spillage_DataCollection():
         self.count = int(self.config['count'])
         count = int(self.count) + 1
         self.config['count'] = count
-        
 
-        
+        food_info_path = "./config/food_info.yaml"
+        with open(food_info_path, 'r') as file:
+            self.food_info = yaml.safe_load(file)
+
+
         self.pcd_functions = Pcd_functions()
         self.functions = functions()
 
@@ -131,20 +137,20 @@ class Spillage_DataCollection():
             "rest": torch.Tensor([[[0.],[0.],[0.],[0.],[0.],[0.], [0.]]]).to(self.device),
         }
 
+
+
     def offset_generate(self):
-        
-        # need to modify the offset
-        front_step = 20
-        self.U_index = np.array(random.sample(range(len(self.mean_eepose_qua)- front_step), random.randint(0, 50))) + front_step
-        self.D_index = np.array(random.sample(range(len(self.mean_eepose_qua)- front_step), random.randint(0, 70))) + front_step
-        self.L_index = np.array(random.sample(range(len(self.mean_eepose_qua)- front_step), random.randint(0, 50))) + front_step
-        self.R_index = np.array(random.sample(range(len(self.mean_eepose_qua)- front_step), random.randint(0, 50))) + front_step
-        self.B_index = np.array(random.sample(range(len(self.mean_eepose_qua)- front_step), random.randint(0, 50))) + front_step
-        self.F_index = np.array(random.sample(range(len(self.mean_eepose_qua)- front_step), random.randint(0, 50))) + front_step
+        # generate random offset for each direction
+        self.U_index = np.array(random.sample(range(len(self.mean_eepose_qua)), random.randint(0, len(self.mean_eepose_qua))))
+        self.D_index = np.array(random.sample(range(len(self.mean_eepose_qua)), random.randint(0, len(self.mean_eepose_qua))))
+        self.L_index = np.array(random.sample(range(len(self.mean_eepose_qua)), random.randint(0, len(self.mean_eepose_qua))))
+        self.R_index = np.array(random.sample(range(len(self.mean_eepose_qua)), random.randint(0, len(self.mean_eepose_qua))))
+        self.B_index = np.array(random.sample(range(len(self.mean_eepose_qua)), random.randint(0, len(self.mean_eepose_qua))))
+        self.F_index = np.array(random.sample(range(len(self.mean_eepose_qua)), random.randint(0, len(self.mean_eepose_qua))))
 
     def apply_offset(self, index):
 
-        offset_weight = 600
+        offset_weight = 1000
 
         offset = torch.Tensor([[[0.],[0.],[0.],[0.],[0.],[0.],[0.]]]).to(self.device)
  
@@ -210,6 +216,7 @@ class Spillage_DataCollection():
 
         # get eepose
         sim_current_pose = self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7]
+
         # real_current_pose = self.functions.eepose_sim2real_offset(sim_current_pose.to("cpu"))
         self.record_ee_pose[0].append(sim_current_pose[0].to("cpu"))
 
@@ -352,7 +359,6 @@ class Spillage_DataCollection():
         # Simulation loop
         while simulation_app.is_running():
             # init set
-            print(f"frame_num: {frame_num}")
             ## joint state
             # print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
             ## eepose
@@ -471,10 +477,6 @@ class Spillage_DataCollection():
         #     weight_spillage = binary_spillage
         
 
-        
-        # with open("food_info.json", "r") as file:
-        #     food_info = json.load(file)
-        #     file.close()
 
         with open(self.config_file, 'w') as file:
             yaml.safe_dump(self.config, file)
@@ -485,25 +487,24 @@ class Spillage_DataCollection():
             'sim_eepose' : sim_eepose,
             'mix_all_pcd' : mix_all_pcd,
             'spillage_amount': spillage_amount,
-            # 'spillage_vol': spillage_vol,
+            'spillage_vol': spillage_vol,
             'binary_spillage' : binary_spillage,
             'scoop_amount': scoop_amount,
-            # 'scoop_vol': scoop_vol,
+            'scoop_vol': scoop_vol,
             'binary_scoop' : binary_scoop,
-            # 'r_radius' : food_info["r_radius"],
-            # 'l_radius' :food_info["l_radius"],
-            # 'mass' : food_info["mass"],
-            # 'friction' : food_info["friction"],
-
-            'amount' : self.init_amount_amount,
-            # 'shape' : self.food_label,
+            'r_radius' : self.food_info["r_radius"],
+            'l_radius' :self.food_info["l_radius"],
+            'mass' : self.food_info["mass"],
+            'friction' : self.food_info["friction"],
+            'shape' : self.food_info["shape"],
+            'amount' : self.init_amount,
         }
 
         # print(binary_spillage.shape)
 
         import os 
         print("store data")
-        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/6_27/"
+        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_19/"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -524,20 +525,31 @@ class Spillage_DataCollection():
         spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
         current_spillage = np.count_nonzero(spillage_mask)
 
-        scoop_mask = np.logical_or(z_pose > 0.15, np.logical_and(z_pose > 0, y_pose > 0))
+        scoop_mask = np.logical_or(z_pose > 0.14, np.logical_and(z_pose > 0, y_pose > 0))
         scoop_amount = np.count_nonzero(scoop_mask)
 
         if reset == 1:
             init_amount_mask = z_pose > 0.03
-            self.init_amount_amount = np.count_nonzero(init_amount_mask)
+            self.init_amount = np.count_nonzero(init_amount_mask)
    
 
         
         if reset == 0:
          
             spillage_amount = current_spillage - self.pre_spillage[env_index]
-            # spillage_vol = spillage_amount * (self.ball_radius**3) * 10**9
-            # scoop_vol = scoop_amount * (self.ball_radius**3)* 10**9
+            
+            if self.food_info["shape"] == "sphere":
+                spillage_vol = spillage_amount * (self.food_info["r_radius"]**3)
+                scoop_vol = scoop_amount * (self.food_info["r_radius"]**3)
+            elif self.food_info["shape"] == "cylinder":
+                spillage_vol = spillage_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"])
+                scoop_vol = scoop_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"])
+            elif self.food_info["shape"] == "cube":
+                spillage_vol = spillage_amount * (self.food_info["r_radius"]**3)
+                scoop_vol = scoop_amount * (self.food_info["r_radius"]**3)
+            elif self.food_info["shape"] == "cone":
+                spillage_vol = spillage_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"] / 3)
+                scoop_vol = scoop_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"] / 3)
             
             if int(spillage_amount) == 0:
                 self.binary_spillage[env_index].append(0)
@@ -552,8 +564,8 @@ class Spillage_DataCollection():
 
             self.spillage_amount[env_index].append(int(spillage_amount))
             self.scooped_amount[env_index].append(int(scoop_amount))
-            # self.spillage_vol[env_index].append(int(spillage_vol))
-            # self.scooped_vol[env_index].append(int(scoop_vol))
+            self.spillage_vol[env_index].append(int(spillage_vol))
+            self.scooped_vol[env_index].append(int(scoop_vol))
 
 
             print(f"spillage amount :{int(spillage_amount)}")
@@ -582,8 +594,9 @@ def main():
     print("[INFO]: Setup complete...")
     # Run the simulator
 
-    start_step = 4
+    start_step = 15
     franka_init_pose = np.load("./sample_trail/mean/joint_states.npy")[start_step]
+
     # franka_init_pose = torch.tensor([[-0.5274,  0.3762,  0.7781, -1.9750, -1.2902,  1.6099, -0.0281]])
    
     
@@ -591,8 +604,8 @@ def main():
     franka_init_pose = np.append(franka_init_pose, 0)
     franka_init_pose = torch.tensor(franka_init_pose, dtype=torch.float32).unsqueeze(0)
    
-
-    ee_goals = np.load("./sample_trail/mean/mean_pose.npy")[start_step:]
+    # traj shape : (85, 7)
+    ee_goals = np.load("./sample_trail/mean/mean_pose.npy")[(start_step + 1) : ]
 
 
     env = Spillage_DataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, food_info = None, sim_dt = sim_dt)

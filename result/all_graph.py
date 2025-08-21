@@ -12,13 +12,13 @@ spillage_counts = []
 weights = [3, 5, 7]
 
 r_radius = 0.009
-mass = 0.003
+mass = 0.005
 ball_amount = 9
-friction = 0.8
+friction = 0.5
 shape = "sphere"
 
 
-file_root = f"./friction/{friction}"
+file_root = f"./mass/{mass}"
 # Initialize arrays to store rates for each weight
 metrics = ['Unspillage Rate', 'Scoop Success Rate', 'Success Rate']
 rates_by_weight = []

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 
-file_name = f"./friction/0.1/R0.009_M0.003_A9_F0.1_Ssphere_W7.json"
+file_name = f"./long_denoise/R0.009_M0.003_A9_F0.5_Ssphere_W3.json"
 with open(file_name, "r") as json_file:
     spillage_data = json.load(json_file)
 

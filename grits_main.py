@@ -450,7 +450,7 @@ class Grits():
         shape = self.cfg["food_property"]["shape"]
         weight = self.cfg.testing.spillage_guided.weight
 
-        file_name = f"result/friction/0.1/R{r_radius}_M{mass}_A{ball_amount}_F{friction}_S{shape}_W{weight}.json"
+        file_name = f"result/size/R{r_radius}_M{mass}_A{ball_amount}_F{friction}_S{shape}_W{weight}.json"
 
         try:
             with open(file_name, "r") as json_file:

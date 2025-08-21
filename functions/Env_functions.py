@@ -32,6 +32,10 @@ class Env_functions():
         config_file_name = "grits.yaml"
         self.cfg = configparser.get_config(config_dir=config_dir, file_name=config_file_name)
 
+        # self.food_info_cfg = configparser.get_config(config_dir=config_dir, file_name="food_info.yaml")
+        with open("config/food_info.yaml", "r") as f:
+            self.food_info_cfg = yaml.safe_load(f)
+
 
         with open("noise_pairs.yaml", "r") as stream:
             noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
@@ -152,23 +156,33 @@ class Env_functions():
 
     def add_rigid(self): 
     
-        # r_radius = round(random.uniform(0.0025, 0.01), 4)
-        # l_radius = round(random.uniform(0.0025, 0.01), 4)
-        # mass = round(random.uniform(0.0001, 0.005), 4)
-        # friction = round(random.uniform(0, 1),2)
-        # max_num = int(256/pow(2, (r_radius - 0.0025)*1000)) 
-        # ball_amount = random.randint(1, max(1, max_num))+2
-        # n = random.randint(3, 5)
+        r_radius = round(random.uniform(0.0025, 0.01), 4)
+        l_radius = round(random.uniform(0.0025, 0.01), 4)
+        mass = round(random.uniform(0.0001, 0.005), 4)
+        friction = round(random.uniform(0, 1),2)
+        max_num = int(256/pow(2, (r_radius - 0.0025)*1000)) 
+        ball_amount = random.randint(1, max(1, max_num))+2
+        n = random.randint(3, 5)
+
+        self.food_info_cfg["r_radius"] = r_radius
+        self.food_info_cfg["l_radius"] = l_radius
+        self.food_info_cfg["mass"] = mass
+        self.food_info_cfg["friction"] = friction
+        self.food_info_cfg["ball_amount"] = ball_amount
+        self.food_info_cfg["len"] = n
+
+        
 
 
 
-        r_radius = self.cfg["food_property"]["r_radius"]
-        l_radius = self.cfg["food_property"]["l_radius"]
-        mass = self.cfg["food_property"]["mass"]
-        friction = self.cfg["food_property"]["friction"]
-        ball_amount = self.cfg["food_property"]["ball_amount"]
-        ball_shape = self.cfg["food_property"]["shape"]
-        n = self.cfg["food_property"]["len"]
+
+        # r_radius = self.cfg["food_property"]["r_radius"]
+        # l_radius = self.cfg["food_property"]["l_radius"]
+        # mass = self.cfg["food_property"]["mass"]
+        # friction = self.cfg["food_property"]["friction"]
+        # ball_amount = self.cfg["food_property"]["ball_amount"]
+        # ball_shape = self.cfg["food_property"]["shape"]
+        # n = self.cfg["food_property"]["len"]
 
         rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, x_offset = 0.005)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
@@ -224,15 +238,21 @@ class Env_functions():
         # )
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
-        # obj_cfg = random.choice(shapes)
+        obj_cfg = random.choice(shapes)
+        ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
+
+        
         if ball_shape == "sphere":
-            obj_cfg = cfg_sphere    
+            self.food_info_cfg["shape"] = "sphere"    
         elif ball_shape == "cone":
-            obj_cfg = cfg_cone
+            self.food_info_cfg["shape"] = "cone"
         elif ball_shape == "cylinder":
-            obj_cfg = cfg_cylinder
+            self.food_info_cfg["shape"] = "cylinder"
         elif ball_shape == "cube":  
-            obj_cfg = cfg_cube
+            self.food_info_cfg["shape"] = "cube"
+
+        with open("./config/food_info.yaml", "w") as cfg_file:
+            yaml.dump(self.food_info_cfg, cfg_file, default_flow_style=False)
         
 
         obj_cfg.semantic_tags = [("class", "food")]
@@ -410,7 +430,7 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     rigid_object = env_functions.add_rigid()
     
 
-    # front_camera = env_functions.add_camera("front")
+    front_camera = env_functions.add_camera("front")
     back_camera = env_functions.add_camera("back")
 
     
