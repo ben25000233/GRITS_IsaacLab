@@ -1,7 +1,7 @@
-ball_amount: 32
-friction: 0.61
-l_radius: 0.008
-len: 4
-mass: 0.0011
-r_radius: 0.004
-shape: cylinder
+ball_amount: 7
+friction: 0.41
+l_radius: 0.0091
+len: 3
+mass: 0.0014
+r_radius: 0.0065
+shape: sphere
