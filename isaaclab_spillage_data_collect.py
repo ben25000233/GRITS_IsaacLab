@@ -503,6 +503,10 @@ class Spillage_DataCollection():
             'amount' : self.init_amount,
         }
 
+        print()
+        print(self.food_info["shape"])
+        print()
+
         # print(binary_spillage.shape)
 
         import os 

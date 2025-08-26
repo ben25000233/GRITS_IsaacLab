@@ -242,6 +242,7 @@ class Env_functions():
         # obj_cfg = cfg_sphere
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
 
+
         
         if ball_shape == "sphere":
             self.food_info_cfg["shape"] = "sphere"    
@@ -249,8 +250,9 @@ class Env_functions():
             self.food_info_cfg["shape"] = "cone"
         elif ball_shape == "cylinder":
             self.food_info_cfg["shape"] = "cylinder"
-        elif ball_shape == "cube":  
+        elif ball_shape == "cuboid":  
             self.food_info_cfg["shape"] = "cube"
+
 
         with open("./config/food_info.yaml", "w") as cfg_file:
             yaml.dump(self.food_info_cfg, cfg_file, default_flow_style=False)
