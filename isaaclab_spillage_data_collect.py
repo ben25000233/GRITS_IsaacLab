@@ -507,7 +507,7 @@ class Spillage_DataCollection():
 
         import os 
         print("store data")
-        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_19/"
+        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_22/"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 

@@ -20,7 +20,7 @@ docker run --name isaac-lab --shm-size="16g" --entrypoint bash -it --gpus all -e
    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
    -v /media/hcis-s22/data/dp_experiments/0623_single/ckpt:/workspace/ckpt \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/8_19:/workspace/dataset \
+   -v /media/hcis-s22/data/isaaclab_spillage_dataset/spillage_dataset:/workspace/dataset \
    isaac-lab-base
 
 

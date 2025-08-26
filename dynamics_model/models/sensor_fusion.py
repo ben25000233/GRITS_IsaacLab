@@ -71,7 +71,7 @@ class SensorFusion(nn.Module):
 
     def ee_normalize(self, data):
 
-        input_range = torch.load('input_range.pt')
+        input_range = torch.load('input_range.pt', weights_only=True)
 
         self.input_max = input_range[0,:]
         self.input_min = input_range[1,:]
@@ -113,6 +113,7 @@ class SensorFusion(nn.Module):
 
     # def forward_encoder(self, ee_pose, ee_pcd, hand_depth, front_depth, hand_pcd, front_pcd, hand_seg, front_seg):
     def forward_encoder(self, ee_pose, front_pcd, ):
+
         if front_pcd.ndim == 3 :
             image_num, _, _ = front_pcd.shape
             batch_size = 1
@@ -212,6 +213,63 @@ class SensorFusion(nn.Module):
         o3d.visualization.draw_geometries([point_cloud])
 
 
+
+# class Dynamics_model(SensorFusion):
+#     """
+#     SensorFusion Network Architecture without LSTM
+#     """
+
+#     def __init__(
+#         self, device, z_dim=128, action_dim=9, encoder=False, deterministic=False, training_type="spillage"
+#     ):
+#         super().__init__(device, z_dim, action_dim, encoder, deterministic, training_type)
+#         self.multi_encoder = SensorFusion(device=device)
+
+#         # Fully connected layers
+#         self.fc1 = nn.Linear(1152, 1024)  # Use z_dim directly as input size
+#         self.relu1 = nn.ReLU()
+#         self.dropout1 = nn.Dropout(p=0.1)
+
+#         self.fc2 = nn.Linear(1024, 512)  # Use z_dim directly as input size
+#         self.relu2 = nn.ReLU()
+#         self.dropout2 = nn.Dropout(p=0.1)
+
+#         self.fc3 = nn.Linear(512, 256)  # Use z_dim directly as input size
+#         self.relu3 = nn.ReLU()
+#         self.dropout3 = nn.Dropout(p=0.1)
+
+#         self.fc4 = nn.Linear(256, 128)
+#         self.relu4 = nn.ReLU()
+#         self.dropout4 = nn.Dropout(p=0.1)
+
+#         self.fc5 = nn.Linear(128, 2)  # Output layer for 3 predictions
+
+#     def forward(self, ee_pose, tool_with_ball_pcd, ):
+     
+#         # Get latent representation from multi-encoder
+#         latent_z = self.multi_encoder.forward_encoder(ee_pose, tool_with_ball_pcd,)
+    
+#         # Fully connected layers
+#         x = self.fc1(latent_z)
+       
+#         x = self.relu1(x)
+#         x = self.dropout1(x)
+
+#         x = self.fc2(x)
+#         x = self.relu2(x)
+#         x = self.dropout2(x)
+
+#         x = self.fc3(x)
+#         x = self.relu3(x)
+#         x = self.dropout3(x)
+
+#         x = self.fc4(x)
+#         x = self.relu4(x)
+#         x = self.dropout4(x)
+
+#         x = self.fc5(x)
+
+#         return x
 
 class Dynamics_model(SensorFusion):
     """

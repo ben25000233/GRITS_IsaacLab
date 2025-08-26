@@ -70,20 +70,20 @@ class functions():
  
         return temp_1
     
-    def _denormalize(self, data):
+    # def _denormalize(self, data):
     
-        ranges = self.input_max - self.input_min
-        data = data.squeeze(0)
+    #     ranges = self.input_max - self.input_min
+    #     data = data.squeeze(0)
     
-        data_denormalize = torch.zeros_like(data) # [8, 9]
-        for i in range(3): # data.shape[1]
-            if ranges[i] < 1e-4:
-                # If variance is small, shift to zero-mean without scaling
-                data_denormalize[:, i] = data[:, i] + self.input_mean[i]
-            else:
-                # deScale to [-1, 1]
-                data_denormalize[:, i] = ((data[:, i] + 1)*ranges[i] / 2) + self.input_min[i]
-        data_denormalize[:, 3:] = data[:, 3:]
-        return data_denormalize.unsqueeze(0) 
+    #     data_denormalize = torch.zeros_like(data) # [8, 9]
+    #     for i in range(3): # data.shape[1]
+    #         if ranges[i] < 1e-4:
+    #             # If variance is small, shift to zero-mean without scaling
+    #             data_denormalize[:, i] = data[:, i] + self.input_mean[i]
+    #         else:
+    #             # deScale to [-1, 1]
+    #             data_denormalize[:, i] = ((data[:, i] + 1)*ranges[i] / 2) + self.input_min[i]
+    #     data_denormalize[:, 3:] = data[:, 3:]
+    #     return data_denormalize.unsqueeze(0) 
     
     

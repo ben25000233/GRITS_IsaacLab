@@ -158,7 +158,7 @@ class Print_Logger(object):
 def main():
 
     parser = ArgumentParser()
-    parser.add_argument("-c", "--config", default="template.yaml")
+    parser.add_argument("-c", "--config", default="dp_training.yaml")
     parser.add_argument("-r", "--restore", default=0)
     args = parser.parse_args()
     cfg = configparser.get_config(file_name=args.config)

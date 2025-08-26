@@ -296,8 +296,8 @@ class DiffusionPolicy(nn.Module):
         # pre_spillage = torch.log(pre_spillage)
         # make_smoothing_spline(x, y, lam=lam)
         guided_grad = torch.autograd.grad(pre_spillage, traj)[0]
-        # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.003, max = 0.003)
-        guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.01, max = 0.01)
+        # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.01, max = 0.01)
+        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.01, max = 0.01)
         # guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
 
 
@@ -316,6 +316,7 @@ class DiffusionPolicy(nn.Module):
         
         seg_pcd_array = seg_pcd_list
         eepose_array = traj[0][self.start:self.end]
+
 
         spillage_logic = self.spillage_predictor.validate(eepose_array, seg_pcd_array)
         spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
@@ -398,7 +399,7 @@ class DiffusionPolicy(nn.Module):
                             clean_traj = clean_traj.detach().requires_grad_(True)
                             
                             # spillage guidance
-                            
+                      
                             spillage_prob= self.spillage_predict(clean_traj, obs_in.float()) 
                             print(f"spillage_prob : {spillage_prob}")
                             

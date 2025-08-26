@@ -9,7 +9,7 @@ camera_view:
 proprioception: False
 guidance: True
 validation: False
-check_traj : False
+check_traj : True
 
 pre_processing:
   image_range: "standard" # standard:[0,1], dp:[-1,1], image_net

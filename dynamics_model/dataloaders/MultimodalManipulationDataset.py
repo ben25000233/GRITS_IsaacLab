@@ -59,6 +59,26 @@ class MultimodalManipulationDataset(Dataset):
 
         return data
 
+    def align_point_cloud(self, pcds, target_points=10000):
+        new_pcds = []
+        for pcd in pcds :
+            num_points = pcd.shape[0]
+        
+            if num_points >= target_points:
+                # Randomly downsample to target_points
+                indices = np.random.choice(num_points, target_points, replace=False)
+                indices = np.sort(indices)
+
+            else:
+                # Resample with replacement to reach target_points
+                indices = np.random.choice(num_points, target_points, replace=True)
+                indices = np.sort(indices)
+
+            new_pcd = np.asarray(pcd)[indices]
+            new_pcds.append(new_pcd)
+        
+        return np.array(new_pcds)
+
     def _read_data_from_file(self, dataset, idx):
  
         # Read data from a single file for the given index
@@ -76,16 +96,18 @@ class MultimodalManipulationDataset(Dataset):
      
         if idx == 0:
             tool_ball_bowl_pcd = np.tile(dataset["mix_all_pcd"][0] , (look_back_frame, 1, 1)).astype(np.float32)
-            
+            # tool_ball_bowl_pcd = self.align_point_cloud(tool_ball_bowl_pcd, target_points=1000)
+          
         
         else : 
             begin_idx = -look_back_frame 
             tool_ball_bowl_pcd = dataset["mix_all_pcd"][(idx-1)*future_eepose_num : idx*future_eepose_num][begin_idx:].astype(np.float32)
-
+            # tool_ball_bowl_pcd = self.align_point_cloud(tool_ball_bowl_pcd, target_points=1000)
+        
 
         # future ee_pose and tool_pcd
         
-        eepose = dataset["sim_eepose"][idx*future_eepose_num: (idx+1)*future_eepose_num]
+        eepose = dataset["real_eepose"][idx*future_eepose_num: (idx+1)*future_eepose_num]
         
 
         # exit()

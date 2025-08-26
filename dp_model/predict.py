@@ -70,7 +70,7 @@ class LfD():
         #                         map_location=self.cfg.testing.device)
                                 
   
-        ema = copy.deepcopy(self.diffusion_model)
+        ema = copy.copy(self.diffusion_model)
         ema.to(self.cfg.testing.device)
         
         # load model checkpoint

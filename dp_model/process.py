@@ -28,20 +28,21 @@ def rgb_transform(img):
     return transforms.Compose([
         transforms.Resize([240, 320]),
         transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], 
+                             std=[0.5, 0.5, 0.5])
     ])(img)
 
 def depth_transform(img):
     return transforms.Compose([
         transforms.Resize([240, 320]),
         transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5], std=[0.5])
     ])(img)
 
 def main():
 
     parser = ArgumentParser()
-    parser.add_argument("-c", "--config", default="template.yaml")
-    parser.add_argument("-i", "--in_dir", default="dataset_01_13")
-    parser.add_argument("-o", "--out_dir", default="split_dataset_01_13")
+    parser.add_argument("-c", "--config", default="dp_training.yaml")
     args = parser.parse_args()
     cfg = configparser.get_config(file_name=args.config)
 
@@ -52,9 +53,12 @@ def main():
     # |p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|p|
     # ========================================= #
 
-    dir_path = args.in_dir
-    out_dir = args.out_dir
+    dir_path = cfg.data_preprocess.in_dir
+    out_dir = cfg.data_preprocess.out_dir
     food_item = cfg.data.food_item
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     
     # food category
     num_all = 0
@@ -63,7 +67,7 @@ def main():
     ee_all = []
     for i in range(len(food_item)):
         for j in range(cfg.data.trial_num):
-            ee_pose = np.load(dir_path + "/" + food_item[i] + "_{}/ee_pose_qua.npy".format(str(j+1).zfill(2)))
+            ee_pose = np.load(dir_path + "/" + food_item[i] + "_{}/sim_ee_pose_qua.npy".format(str(j+1).zfill(2)))
             ee_all.append(ee_pose)
 
     ee_all = np.asarray(ee_all)
@@ -90,20 +94,26 @@ def main():
             rgb_back_orin = np.load(dir_path + "/" + food_item[i] + "_{}/back_rgb.npy".format(str(j+1).zfill(2)))
             depth_back_orin = np.load(dir_path + "/" + food_item[i] + "_{}/back_depth.npy".format(str(j+1).zfill(2)))
 
-            ee_pose_orin = np.load(dir_path + "/" + food_item[i] + "_{}/ee_pose_qua.npy".format(str(j+1).zfill(2)))
+            ee_pose_orin = np.load(dir_path + "/" + food_item[i] + "_{}/sim_ee_pose_qua.npy".format(str(j+1).zfill(2)))
+
 
             # ------------crop----------
-            rgb_front = rgb_front_orin[10:230, :800, 80:]
-            depth_front = depth_front_orin[10:230, :800, 80:]
-            rgb_back = rgb_back_orin[10:230, :800, 80:]
-            depth_back = depth_back_orin[10:230, :800, 80:]
-            ee_pose = ee_pose_orin[10:230]
 
-            assert rgb_front.shape[0]==220
-            assert depth_front.shape[0]==220
-            assert rgb_back.shape[0]==220
-            assert depth_back.shape[0]==220
-            assert ee_pose.shape[0]==220
+            # ori : 960*1280
+            rgb_front = rgb_front_orin[:, :800, 80:]
+            depth_front = depth_front_orin[:, :800, 80:]
+            rgb_back = rgb_back_orin
+            depth_back = depth_back_orin
+            ee_pose = ee_pose_orin
+
+            
+      
+     
+            assert rgb_front.shape[0]==100
+            assert depth_front.shape[0]==100
+            assert rgb_back.shape[0]==100
+            assert depth_back.shape[0]==100
+            assert ee_pose.shape[0]==100
 
             # convert qua to rotation 6D
             ee_pose_position = ee_pose[:, :3]
@@ -121,11 +131,11 @@ def main():
 
                 ee_pose_6d = np.concatenate((np.expand_dims(ee_pose_6d[0], 0), ee_pose_6d), 0)               
 
-            assert rgb_front.shape[0]==220+To-1
-            assert depth_front.shape[0]==220+To-1
-            assert rgb_back.shape[0]==220+To-1
-            assert depth_back.shape[0]==220+To-1
-            assert ee_pose_6d.shape[0]==220+To-1
+            assert rgb_front.shape[0]==100+To-1
+            assert depth_front.shape[0]==100+To-1
+            assert rgb_back.shape[0]==100+To-1
+            assert depth_back.shape[0]==100+To-1
+            assert ee_pose_6d.shape[0]==100+To-1
 
             T = cfg.horizon
             t=0
@@ -133,9 +143,11 @@ def main():
                     
                 rgb_front_tslice = rgb_front[t:t+T] # [16]
                 depth_front_tslice = depth_front[t:t+T] # [16,]
+                depth_front_tslice = depth_front_tslice[:, :, 0] # [16, 240, 320]
 
                 rgb_back_tslice = rgb_back[t:t+T] # [16]
                 depth_back_tslice = depth_back[t:t+T] # [16,]
+                depth_back_tslice = depth_back_tslice[:, :, 0]
 
                 ee_pose_6d_tslice = ee_pose_6d[t:t+T] # [16, 7]
                 # action normalize to [-1,1], and transfer to tensor
@@ -151,6 +163,7 @@ def main():
                     # front depth
                     depth_PIL = depth_front_tslice[tt].astype(np.float32)
                     depth_PIL = depth_PIL / np.max(depth_PIL)
+                    depth_PIL = (depth_PIL * 255).astype(np.uint8)
                     depth_front_tt = depth_transform(Image.fromarray(depth_PIL))
                     # concat
                     ob_front_tensor.append(torch.cat((rgb_front_tt, depth_front_tt), 0))    
@@ -161,6 +174,7 @@ def main():
                     # back depth
                     depth_PIL = depth_back_tslice[tt].astype(np.float32)
                     depth_PIL = depth_PIL / np.max(depth_PIL)
+                    depth_PIL = (depth_PIL * 255).astype(np.uint8)
                     depth_back_tt = depth_transform(Image.fromarray(depth_PIL))
                     # concat
                     ob_back_tensor.append(torch.cat((rgb_back_tt, depth_back_tt), 0))         
@@ -185,7 +199,7 @@ def main():
                 torch.save(ob_back_tensor, out_dir+'/ob_back/ob_back_{}.pt'.format(str(num_all).zfill(5)))
                 torch.save(ee_6d_tensor, out_dir+'/traj/traj_{}.pt'.format(str(num_all).zfill(5)))
                 num_all+=1
-                # print(num_all) # one trial = 234 .pt file   
+                print(num_all) # one trial = 234 .pt file   
 
                 t+=1 
           
