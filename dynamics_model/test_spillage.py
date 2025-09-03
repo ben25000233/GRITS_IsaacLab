@@ -26,7 +26,7 @@ class spillage_predictor:
         ).to(self.device)
 
         # model_path = "./dynamics_model/spillage_ckpt.pt"
-        model_path = "./dynamics_model/epoch15.pt"
+        model_path = "/media/hcis-s22/data/isaaclab_spillage_dataset/spillage_dataset/sim_spillage_ckpt/epoch400.pt"
         print("Loading model from {}...".format(model_path))
         ckpt = torch.load(model_path)
         self.model.load_state_dict(ckpt)

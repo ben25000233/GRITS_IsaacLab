@@ -1,7 +1,7 @@
-ball_amount: 6
-friction: 0.95
-l_radius: 0.0065
-len: 3
-mass: 0.0046
-r_radius: 0.0082
-shape: cone
+ball_amount: 166
+friction: 0.22
+l_radius: 0.0092
+len: 4
+mass: 0.0032
+r_radius: 0.003
+shape: cube

@@ -8,7 +8,8 @@ from .base_models.encoders import (
     property_Encoder,
     obs_pcd_Encoder,
     flow_pcd_Encoder,
-    depth_Encoder
+    depth_Encoder,
+    PointNetEncoderXYZRGB
 )
 
 def check_pcd_color(pcd):
@@ -60,7 +61,8 @@ class SensorFusion(nn.Module):
         # self.feature_num = 3
 
         # Modality Encoders
-        self.obs_pcd_encoder = obs_pcd_Encoder(device=device)
+        # self.obs_pcd_encoder = obs_pcd_Encoder(device=device)
+        self.obs_pcd_encoder = PointNetEncoderXYZRGB(device=device)
         # self.flow_pcd_encoder = flow_pcd_Encoder(device=device)
         # self.depth_encoder = depth_Encoder()
         self.eepose_encoder = ee_pose_Encoder()
@@ -283,7 +285,7 @@ class Dynamics_model(SensorFusion):
         self.multi_encoder = SensorFusion(device=device)
 
         # Fully connected layers
-        self.fc1 = nn.Linear(1152, 256)  # Use z_dim directly as input size
+        self.fc1 = nn.Linear(1408, 256)  # Use z_dim directly as input size
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(p=0.1)
 

@@ -164,6 +164,12 @@ class Env_functions():
         ball_amount = random.randint(1, max(1, max_num))+2
         n = random.randint(3, 5)
 
+
+        # ball_amount = 10
+        # n = 4
+        # r_radius = 0.009
+
+
         self.food_info_cfg["r_radius"] = r_radius
         self.food_info_cfg["l_radius"] = l_radius
         self.food_info_cfg["mass"] = mass
@@ -238,8 +244,8 @@ class Env_functions():
         # )
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
-        obj_cfg = random.choice(shapes)
-        # obj_cfg = cfg_sphere
+        # obj_cfg = random.choice(shapes)
+        obj_cfg = cfg_cube
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
 
 

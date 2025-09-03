@@ -79,129 +79,129 @@ def main():
         np.expand_dims(input_max, 0), 
         np.expand_dims(input_min, 0), 
         np.expand_dims(input_mean, 0)), 0))
-    torch.save(input_range, out_dir + "/input_range.pt")
+    torch.save(input_range, out_dir + "/sim_input_range.pt")
     print("input_max= ", input_max)
     print("input_min= ", input_min)
     print("input_mean= ", input_mean)
 
-    for i in tqdm(range(len(food_item))):
-        for j in range(cfg.data.trial_num):
-            print(food_item[i] + '_' + str(j+1).zfill(2))
+    # for i in tqdm(range(len(food_item))):
+    #     for j in range(cfg.data.trial_num):
+    #         print(food_item[i] + '_' + str(j+1).zfill(2))
 
-            rgb_front_orin = np.load(dir_path + "/" + food_item[i] + "_{}/front_rgb.npy".format(str(j+1).zfill(2)))
-            depth_front_orin = np.load(dir_path + "/" + food_item[i] + "_{}/front_depth.npy".format(str(j+1).zfill(2)))
+    #         rgb_front_orin = np.load(dir_path + "/" + food_item[i] + "_{}/front_rgb.npy".format(str(j+1).zfill(2)))
+    #         depth_front_orin = np.load(dir_path + "/" + food_item[i] + "_{}/front_depth.npy".format(str(j+1).zfill(2)))
 
-            rgb_back_orin = np.load(dir_path + "/" + food_item[i] + "_{}/back_rgb.npy".format(str(j+1).zfill(2)))
-            depth_back_orin = np.load(dir_path + "/" + food_item[i] + "_{}/back_depth.npy".format(str(j+1).zfill(2)))
+    #         rgb_back_orin = np.load(dir_path + "/" + food_item[i] + "_{}/back_rgb.npy".format(str(j+1).zfill(2)))
+    #         depth_back_orin = np.load(dir_path + "/" + food_item[i] + "_{}/back_depth.npy".format(str(j+1).zfill(2)))
 
-            ee_pose_orin = np.load(dir_path + "/" + food_item[i] + "_{}/sim_ee_pose_qua.npy".format(str(j+1).zfill(2)))
+    #         ee_pose_orin = np.load(dir_path + "/" + food_item[i] + "_{}/sim_ee_pose_qua.npy".format(str(j+1).zfill(2)))
 
 
-            # ------------crop----------
+    #         # ------------crop----------
 
-            # ori : 960*1280
-            rgb_front = rgb_front_orin[:, :800, 80:]
-            depth_front = depth_front_orin[:, :800, 80:]
-            rgb_back = rgb_back_orin
-            depth_back = depth_back_orin
-            ee_pose = ee_pose_orin
+    #         # ori : 960*1280
+    #         rgb_front = rgb_front_orin[:, :800, 80:]
+    #         depth_front = depth_front_orin[:, :800, 80:]
+    #         rgb_back = rgb_back_orin
+    #         depth_back = depth_back_orin
+    #         ee_pose = ee_pose_orin
 
             
       
      
-            assert rgb_front.shape[0]==100
-            assert depth_front.shape[0]==100
-            assert rgb_back.shape[0]==100
-            assert depth_back.shape[0]==100
-            assert ee_pose.shape[0]==100
+    #         assert rgb_front.shape[0]==100
+    #         assert depth_front.shape[0]==100
+    #         assert rgb_back.shape[0]==100
+    #         assert depth_back.shape[0]==100
+    #         assert ee_pose.shape[0]==100
 
-            # convert qua to rotation 6D
-            ee_pose_position = ee_pose[:, :3]
-            ee_pose_rotation = rotation_transformer.forward(ee_pose[:, 3:])
-            ee_pose_6d = np.concatenate((ee_pose_position, ee_pose_rotation), -1) # [:,9]
+    #         # convert qua to rotation 6D
+    #         ee_pose_position = ee_pose[:, :3]
+    #         ee_pose_rotation = rotation_transformer.forward(ee_pose[:, 3:])
+    #         ee_pose_6d = np.concatenate((ee_pose_position, ee_pose_rotation), -1) # [:,9]
 
-            # add To-1 frame before first frame
-            To = cfg.n_obs_steps
-            for _ in range(To-1):
-                rgb_front = np.concatenate((np.expand_dims(rgb_front[0], 0), rgb_front), 0)
-                depth_front = np.concatenate((np.expand_dims(depth_front[0], 0), depth_front), 0)
+    #         # add To-1 frame before first frame
+    #         To = cfg.n_obs_steps
+    #         for _ in range(To-1):
+    #             rgb_front = np.concatenate((np.expand_dims(rgb_front[0], 0), rgb_front), 0)
+    #             depth_front = np.concatenate((np.expand_dims(depth_front[0], 0), depth_front), 0)
 
-                rgb_back = np.concatenate((np.expand_dims(rgb_back[0], 0), rgb_back), 0)
-                depth_back = np.concatenate((np.expand_dims(depth_back[0], 0), depth_back), 0)
+    #             rgb_back = np.concatenate((np.expand_dims(rgb_back[0], 0), rgb_back), 0)
+    #             depth_back = np.concatenate((np.expand_dims(depth_back[0], 0), depth_back), 0)
 
-                ee_pose_6d = np.concatenate((np.expand_dims(ee_pose_6d[0], 0), ee_pose_6d), 0)               
+    #             ee_pose_6d = np.concatenate((np.expand_dims(ee_pose_6d[0], 0), ee_pose_6d), 0)               
 
-            assert rgb_front.shape[0]==100+To-1
-            assert depth_front.shape[0]==100+To-1
-            assert rgb_back.shape[0]==100+To-1
-            assert depth_back.shape[0]==100+To-1
-            assert ee_pose_6d.shape[0]==100+To-1
+    #         assert rgb_front.shape[0]==100+To-1
+    #         assert depth_front.shape[0]==100+To-1
+    #         assert rgb_back.shape[0]==100+To-1
+    #         assert depth_back.shape[0]==100+To-1
+    #         assert ee_pose_6d.shape[0]==100+To-1
 
-            T = cfg.horizon
-            t=0
-            while t<ee_pose.shape[0]-T: # 254-16=238
+    #         T = cfg.horizon
+    #         t=0
+    #         while t<ee_pose.shape[0]-T: # 254-16=238
                     
-                rgb_front_tslice = rgb_front[t:t+T] # [16]
-                depth_front_tslice = depth_front[t:t+T] # [16,]
-                depth_front_tslice = depth_front_tslice[:, :, 0] # [16, 240, 320]
+    #             rgb_front_tslice = rgb_front[t:t+T] # [16]
+    #             depth_front_tslice = depth_front[t:t+T] # [16,]
+    #             depth_front_tslice = depth_front_tslice[:, :, 0] # [16, 240, 320]
 
-                rgb_back_tslice = rgb_back[t:t+T] # [16]
-                depth_back_tslice = depth_back[t:t+T] # [16,]
-                depth_back_tslice = depth_back_tslice[:, :, 0]
+    #             rgb_back_tslice = rgb_back[t:t+T] # [16]
+    #             depth_back_tslice = depth_back[t:t+T] # [16,]
+    #             depth_back_tslice = depth_back_tslice[:, :, 0]
 
-                ee_pose_6d_tslice = ee_pose_6d[t:t+T] # [16, 7]
-                # action normalize to [-1,1], and transfer to tensor
-                ee_6d_tslice_normalize = _normalize(ee_pose_6d_tslice, input_max, input_min, input_mean)
+    #             ee_pose_6d_tslice = ee_pose_6d[t:t+T] # [16, 7]
+    #             # action normalize to [-1,1], and transfer to tensor
+    #             ee_6d_tslice_normalize = _normalize(ee_pose_6d_tslice, input_max, input_min, input_mean)
 
-                ob_front_tensor = []
-                ob_back_tensor = []
-                for tt in range(T):
-                    # observation transform
+    #             ob_front_tensor = []
+    #             ob_back_tensor = []
+    #             for tt in range(T):
+    #                 # observation transform
                     
-                    rgb_PIL =  Image.fromarray(rgb_front_tslice[tt].astype('uint8'), 'RGB')
-                    rgb_front_tt = rgb_transform(rgb_PIL)
-                    # front depth
-                    depth_PIL = depth_front_tslice[tt].astype(np.float32)
-                    depth_PIL = depth_PIL / np.max(depth_PIL)
-                    depth_PIL = (depth_PIL * 255).astype(np.uint8)
-                    depth_front_tt = depth_transform(Image.fromarray(depth_PIL))
-                    # concat
-                    ob_front_tensor.append(torch.cat((rgb_front_tt, depth_front_tt), 0))    
+    #                 rgb_PIL =  Image.fromarray(rgb_front_tslice[tt].astype('uint8'), 'RGB')
+    #                 rgb_front_tt = rgb_transform(rgb_PIL)
+    #                 # front depth
+    #                 depth_PIL = depth_front_tslice[tt].astype(np.float32)
+    #                 depth_PIL = depth_PIL / np.max(depth_PIL)
+    #                 depth_PIL = (depth_PIL * 255).astype(np.uint8)
+    #                 depth_front_tt = depth_transform(Image.fromarray(depth_PIL))
+    #                 # concat
+    #                 ob_front_tensor.append(torch.cat((rgb_front_tt, depth_front_tt), 0))    
 
-                    # back rgb
-                    rgb_PIL =  Image.fromarray(rgb_back_tslice[tt].astype('uint8'), 'RGB')
-                    rgb_back_tt = rgb_transform(rgb_PIL)
-                    # back depth
-                    depth_PIL = depth_back_tslice[tt].astype(np.float32)
-                    depth_PIL = depth_PIL / np.max(depth_PIL)
-                    depth_PIL = (depth_PIL * 255).astype(np.uint8)
-                    depth_back_tt = depth_transform(Image.fromarray(depth_PIL))
-                    # concat
-                    ob_back_tensor.append(torch.cat((rgb_back_tt, depth_back_tt), 0))         
+    #                 # back rgb
+    #                 rgb_PIL =  Image.fromarray(rgb_back_tslice[tt].astype('uint8'), 'RGB')
+    #                 rgb_back_tt = rgb_transform(rgb_PIL)
+    #                 # back depth
+    #                 depth_PIL = depth_back_tslice[tt].astype(np.float32)
+    #                 depth_PIL = depth_PIL / np.max(depth_PIL)
+    #                 depth_PIL = (depth_PIL * 255).astype(np.uint8)
+    #                 depth_back_tt = depth_transform(Image.fromarray(depth_PIL))
+    #                 # concat
+    #                 ob_back_tensor.append(torch.cat((rgb_back_tt, depth_back_tt), 0))         
                 
-                # save tensor
-                ee_6d_tensor = torch.from_numpy(ee_6d_tslice_normalize) # (16, 9)
-                ob_front_tensor = torch.stack(ob_front_tensor, dim=0)
-                ob_back_tensor = torch.stack(ob_back_tensor, dim=0)
+    #             # save tensor
+    #             ee_6d_tensor = torch.from_numpy(ee_6d_tslice_normalize) # (16, 9)
+    #             ob_front_tensor = torch.stack(ob_front_tensor, dim=0)
+    #             ob_back_tensor = torch.stack(ob_back_tensor, dim=0)
 
-                assert ob_front_tensor.shape[0]==T
-                assert ob_back_tensor.shape[0]==T
-                assert ee_6d_tensor.shape[0]==T
+    #             assert ob_front_tensor.shape[0]==T
+    #             assert ob_back_tensor.shape[0]==T
+    #             assert ee_6d_tensor.shape[0]==T
 
-                if not os.path.exists(f"{out_dir}/ob_front"):
-                    os.makedirs(f"{out_dir}/ob_front")
-                if not os.path.exists(f"{out_dir}/ob_back"):
-                    os.makedirs(f"{out_dir}/ob_back")
-                if not os.path.exists(f"{out_dir}/traj"):
-                    os.makedirs(f"{out_dir}/traj")
+    #             if not os.path.exists(f"{out_dir}/ob_front"):
+    #                 os.makedirs(f"{out_dir}/ob_front")
+    #             if not os.path.exists(f"{out_dir}/ob_back"):
+    #                 os.makedirs(f"{out_dir}/ob_back")
+    #             if not os.path.exists(f"{out_dir}/traj"):
+    #                 os.makedirs(f"{out_dir}/traj")
 
-                torch.save(ob_front_tensor, out_dir+'/ob_front/ob_front_{}.pt'.format(str(num_all).zfill(5)))
-                torch.save(ob_back_tensor, out_dir+'/ob_back/ob_back_{}.pt'.format(str(num_all).zfill(5)))
-                torch.save(ee_6d_tensor, out_dir+'/traj/traj_{}.pt'.format(str(num_all).zfill(5)))
-                num_all+=1
-                print(num_all) # one trial = 234 .pt file   
+    #             torch.save(ob_front_tensor, out_dir+'/ob_front/ob_front_{}.pt'.format(str(num_all).zfill(5)))
+    #             torch.save(ob_back_tensor, out_dir+'/ob_back/ob_back_{}.pt'.format(str(num_all).zfill(5)))
+    #             torch.save(ee_6d_tensor, out_dir+'/traj/traj_{}.pt'.format(str(num_all).zfill(5)))
+    #             num_all+=1
+    #             print(num_all) # one trial = 234 .pt file   
 
-                t+=1 
+    #             t+=1 
           
 
 if __name__ == '__main__':

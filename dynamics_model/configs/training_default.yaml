@@ -48,7 +48,8 @@ n_time_steps : 7
 
 
 # path to dataset hdf5 file'
-dataset: "/workspace/dataset/"
+train_dataset: "/workspace/train_dataset/"
+val_dataset: "/workspace/val_dataset/"
 # dataset: "/media/hcis-s22/data/new_dataset/dataset/"
 
 val_ratio: 0.2

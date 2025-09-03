@@ -247,8 +247,8 @@ class Grits():
             # self.pcd_functions.check_pcd_color(np.array(seg_pcd[0]))
 
         
-        image_array = np.array(images)[:, :800, 80:]
-        depth_array = np.array(depths)[:, :800, 80:]
+        image_array = np.array(images)
+        depth_array = np.array(depths)
         eepose_array = np.array(eepose)
         seg_pcd_array = np.array(seg_pcd)
  

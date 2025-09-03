@@ -159,6 +159,8 @@ class DiffusionPolicy(nn.Module):
         input_dim = action_dim
         global_cond_dim = obs_feature_dim*cfg.n_obs_steps
 
+
+
         # initialize model
         model = ConditionalUnet1D(
             input_dim=input_dim,
@@ -700,22 +702,23 @@ def from_ee_to_spoon(ee_traj):
         spoon_traj[i, 3:] = matrix_to_rotation_6d(spoon_pose[0:3, 0:3])
     return spoon_traj.unsqueeze(0) # (B, H, 9)
 
-def _normalize(data, input_max, input_min, input_mean):
-    ranges = input_max - input_min
-    data = data.squeeze(0) # [1, 9] -> [9]
-    data_normalize = torch.zeros_like(data) 
-    for i in range(3):
-        if ranges[i] < 1e-4:
-            # If variance is small, shift to zero-mean without scaling
-            data_normalize[i] = data[i] - input_mean[i]
-        else:
-            # Scale to [-1, 1] range
-            data_normalize[i] = -1 + 2 * (data[i] - input_min[i]) / ranges[i]
-    data_normalize[:, 3:] = data[:, 3:]
-    return data_normalize.unsqueeze(0) # [9] -> [1, 9]
+# def _normalize(data, input_max, input_min, input_mean):
+#     ranges = input_max - input_min
+#     data = data.squeeze(0) # [1, 9] -> [9]
+#     data_normalize = torch.zeros_like(data) 
+#     for i in range(3):
+#         if ranges[i] < 1e-4:
+#             # If variance is small, shift to zero-mean without scaling
+#             data_normalize[i] = data[i] - input_mean[i]
+#         else:
+#             # Scale to [-1, 1] range
+#             data_normalize[i] = -1 + 2 * (data[i] - input_min[i]) / ranges[i]
+#     data_normalize[:, 3:] = data[:, 3:]
+#     return data_normalize.unsqueeze(0) # [9] -> [1, 9]
 
 def _denormalize(data, input_max, input_min, input_mean):
     
+
     ranges = input_max - input_min
     data = data.squeeze(0)
   

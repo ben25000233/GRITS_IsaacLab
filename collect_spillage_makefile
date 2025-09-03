@@ -1,7 +1,7 @@
 
 # Number of times to run the script
 # make -f collect_spillage_makefile run
-NUM_RUNS=3000
+NUM_RUNS=4000
 
 # Target to run the script multiple times
 run:

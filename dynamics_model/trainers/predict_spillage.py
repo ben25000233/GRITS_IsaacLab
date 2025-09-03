@@ -87,10 +87,19 @@ class predict_spillage:
         self._init_dataloaders()
 
         
-
-        if not os.path.exists("./../../spillage_ckpt"):
-            os.makedirs("./../../spillage_ckpt")
         
+
+
+        # TensorBoard writer
+        if not os.path.exists("/workspace/train_dataset/logs"):
+            os.makedirs("/workspace/train_dataset/logs")
+        self.writer = SummaryWriter(log_dir='/workspace/train_dataset/logs')
+
+        if not os.path.exists("/workspace/train_dataset/spillage_ckpt"):
+            os.makedirs("/workspace/train_dataset/spillage_ckpt")
+
+        if not os.path.exists("/workspace/train_dataset/confusion"):
+            os.makedirs("/workspace/train_dataset/confusion")
         
  
 
@@ -100,8 +109,8 @@ class predict_spillage:
         best_loss = float("inf") 
         best_model_wts = None    
         
-        # TensorBoard writer
-        writer = SummaryWriter(log_dir='./logs')
+        
+        
         
         for i_epoch in range(self.configs["max_epoch"]):
             
@@ -135,15 +144,15 @@ class predict_spillage:
      
 
             # Log training loss and accuracy to TensorBoard
-            writer.add_scalar('Loss/train', train_loss, i_epoch)
-            writer.add_scalar('Accuracy/train', train_acc, i_epoch)
+            self.writer.add_scalar('Loss/train', train_loss, int(i_epoch))
+            self.writer.add_scalar('Accuracy/train', train_acc, int(i_epoch))
             print(f"train loss : {train_loss}")
             
             # Validation
             self.gd_list = [0, 0]
             self.acc_list = [0, 0]
 
-            val_loss = self.validate(val_loader, writer, i_epoch)
+            val_loss = self.validate(val_loader, i_epoch)
             print(f"total_num : {self.gd_list}")
             print(f"acc_num   : {self.acc_list}")
             for i in range(len(self.gd_list)):
@@ -155,21 +164,24 @@ class predict_spillage:
                 best_loss = val_loss
                 best_model_wts = copy.deepcopy(self.model.state_dict())
             
-            # if (i_epoch + 1) % 10 == 0:
-            if not os.path.exists("/workspace/dataset/spillage_ckpt"):
-                os.makedirs("/workspace/dataset/spillage_ckpt")
-            FILE = f"/workspace/dataset/spillage_ckpt/epoch{i_epoch}.pt"
-            torch.save(best_model_wts, FILE)
+            
+            
+            
+            if (i_epoch + 1) % 10 == 0:
+                FILE = f"/workspace/train_dataset/spillage_ckpt/epoch{i_epoch}.pt"
+                torch.save(best_model_wts, FILE)
 
-        writer.close()
+        self.writer.close()
 
-    def validate(self, val_loader, writer, epoch):
+    def validate(self, val_loader, epoch):
         total_loss = 0.0
         total_acc = 0.0
         self.model.eval()
 
         all_preds = []
         all_labels = []
+
+
 
         with torch.no_grad():
             for i_iter, sample_batched in enumerate(tqdm(val_loader)):
@@ -178,26 +190,27 @@ class predict_spillage:
                 _, labels = torch.max(label, 1)
 
 
-                # all_preds.extend(preds.cpu().numpy())
-                # all_labels.extend(label.cpu().numpy())
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(label.cpu().numpy())
                 
                 total_loss += loss.item()
                 total_acc += acc
 
-        # if (epoch+1) % 5 == 0 :
-        #     self.show_confusion(all_labels, all_preds, epoch)
+        if (epoch+1) % 10 == 0 :
+            self.show_confusion(all_labels, all_preds, epoch)
         
         val_loss = total_loss / len(val_loader)
         val_acc = total_acc / len(val_loader)
         
         # Log validation loss and accuracy to TensorBoard
-        writer.add_scalar('Loss/val', val_loss, epoch)
-        writer.add_scalar('Accuracy/val', val_acc, epoch)
+        self.writer.add_scalar('Loss/val', val_loss, int(epoch))
+        self.writer.add_scalar('Accuracy/val', val_acc, int(epoch))
 
         print(f"val_loss: {val_loss} val_accuracy: {val_acc}")
         return val_loss
     
     def show_confusion(self, label, prediction, epoch):
+        
         class_labels = np.argmax(label, axis=1)
         
         cm = confusion_matrix(class_labels, prediction)
@@ -208,7 +221,7 @@ class predict_spillage:
         plt.xlabel('Predicted Labels')
         plt.ylabel('True Labels')
         plt.title('Confusion Matrix')
-        save_path = f"./confusion/epoch_{epoch}.png"
+        save_path = f"/workspace/train_dataset/confusion/epoch_{epoch}.png"
         plt.savefig(save_path, format='png')
         # plt.show()
     
@@ -335,28 +348,37 @@ class predict_spillage:
 
     def _init_dataloaders(self):
 
-        filename_list = []
-        for file in os.listdir(self.configs["dataset"]):
+        train_filename_list = []
+        for file in os.listdir(self.configs["train_dataset"]):
             if file.endswith(".h5"):
-                filename_list.append(self.configs["dataset"] + file)
+                train_filename_list.append(self.configs["train_dataset"] + file)
 
         print(
-            "Number of files in multifile dataset = {}".format(len(filename_list))
+            "Number of files in train dataset = {}".format(len(train_filename_list))
         )
 
-        train_filename_list = []
         val_filename_list = []
+        for file in os.listdir(self.configs["val_dataset"]):
+            if file.endswith(".h5"):
+                val_filename_list.append(self.configs["val_dataset"] + file)
 
-        val_index = np.random.randint(
-            0, len(filename_list), int(len(filename_list) * self.configs["val_ratio"])
+        print(
+            "Number of files in val dataset = {}".format(len(val_filename_list))
         )
+
+
+        
+
+        # val_index = np.random.randint(
+        #     0, len(filename_list), int(len(filename_list) * self.configs["val_ratio"])
+        # )
       
        
-        for index in range(len(filename_list)):
-            if index in val_index:
-                val_filename_list.append(filename_list[index])
-            else :
-                train_filename_list.append(filename_list[index])
+        # for index in range(len(filename_list)):
+        #     if index in val_index:
+        #         val_filename_list.append(filename_list[index])
+        #     else :
+        #         train_filename_list.append(filename_list[index])
 
         # for index in val_index:
         #     val_filename_list.append(filename_list[index])

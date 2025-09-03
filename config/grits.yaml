@@ -1,8 +1,9 @@
 defaults:
   - task: food_scoop
 
-trial_name: "0623_single"
-img_type: "rgbd"
+# trial_name: "0623_single"
+trial_name: "0901_sim"
+img_type: "rgb"
 camera_view: 
   mode: "single" # multi
   direction: "back" # front
@@ -57,7 +58,7 @@ training:
 
 testing:
   device: "cuda:0"
-  ckpt_epoch: 400
+  ckpt_epoch: 300
   guided_mode: "guided_clean" # post_processing
   start_guided_iteration: 30
   guided_weight: 1
@@ -66,7 +67,7 @@ testing:
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 0 # 3,5,7
+    weight: 2.5 # 3,5,7
   quatity_guided:
     mode: "AE"
     weight: 1.0

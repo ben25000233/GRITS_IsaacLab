@@ -503,15 +503,13 @@ class Spillage_DataCollection():
             'amount' : self.init_amount,
         }
 
-        print()
-        print(self.food_info["shape"])
-        print()
 
         # print(binary_spillage.shape)
 
         import os 
         print("store data")
-        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_22/"
+        # output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_26_all_sphere/"
+        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/0901_all_cube/"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
