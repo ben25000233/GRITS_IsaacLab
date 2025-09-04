@@ -91,7 +91,7 @@ class MultimodalManipulationDataset(Dataset):
 
 
         # total predict prame : look back(2) add current frame
-        look_back_frame = 1
+        look_back_frame = 3
         future_eepose_num = 12
      
         if idx == 0:

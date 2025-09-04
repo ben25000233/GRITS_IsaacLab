@@ -285,7 +285,7 @@ class Dynamics_model(SensorFusion):
         self.multi_encoder = SensorFusion(device=device)
 
         # Fully connected layers
-        self.fc1 = nn.Linear(1408, 256)  # Use z_dim directly as input size
+        self.fc1 = nn.Linear(3456, 256)  # Use z_dim directly as input size
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(p=0.1)
 

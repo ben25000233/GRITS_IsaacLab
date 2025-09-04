@@ -167,7 +167,7 @@ class predict_spillage:
             
             
             
-            if (i_epoch + 1) % 10 == 0:
+            if (i_epoch + 1) % 1 == 0:
                 FILE = f"/workspace/train_dataset/spillage_ckpt/epoch{i_epoch}.pt"
                 torch.save(best_model_wts, FILE)
 
