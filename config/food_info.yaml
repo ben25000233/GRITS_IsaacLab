@@ -1,7 +1,7 @@
 ball_amount: 10
-friction: 0.26
-l_radius: 0.0071
-len: 5
-mass: 0.0005
-r_radius: 0.0075
+friction: 0.21
+l_radius: 0.0057
+len: 4
+mass: 0.0019
+r_radius: 0.009
 shape: cube

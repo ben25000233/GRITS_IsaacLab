@@ -270,13 +270,13 @@ class predict_spillage:
         if collect_num == 0:
             # print("wrong")
             if len(level_1_indices) == 0:
-                level_2_indices = level_2_indices[torch.randperm(2)]
+                level_2_indices = level_2_indices[torch.randperm(len(level_2_indices))[:2]]
             else:
-                level_1_indices = level_1_indices[torch.randperm(2)]
+                level_1_indices = level_1_indices[torch.randperm(len(level_1_indices))[:2]]
         else :
-      
-            level_1_indices = level_1_indices[torch.randperm(collect_num)]
-            level_2_indices = level_2_indices[torch.randperm(collect_num)]
+
+            level_1_indices = level_1_indices[torch.randperm(len(level_1_indices))[:collect_num]]
+            level_2_indices = level_2_indices[torch.randperm(len(level_2_indices))[:collect_num]]
             
         # combined_indices = torch.cat((level_1_indices, level_2_indices, level_3_indices))
         combined_indices = torch.cat((level_1_indices, level_2_indices))

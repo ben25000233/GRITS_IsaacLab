@@ -10,7 +10,7 @@ camera_view:
 proprioception: False
 guidance: True
 validation: False
-check_traj : True
+check_traj : False
 
 pre_processing:
   image_range: "standard" # standard:[0,1], dp:[-1,1], image_net
@@ -67,7 +67,7 @@ testing:
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 2.5 # 3,5,7
+    weight: 0 # 3,5,7
   quatity_guided:
     mode: "AE"
     weight: 1.0

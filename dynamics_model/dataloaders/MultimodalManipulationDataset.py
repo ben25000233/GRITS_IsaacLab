@@ -96,26 +96,27 @@ class MultimodalManipulationDataset(Dataset):
      
         if idx == 0:
             tool_ball_bowl_pcd = np.tile(dataset["mix_all_pcd"][0] , (look_back_frame, 1, 1)).astype(np.float32)
-            # tool_ball_bowl_pcd = self.align_point_cloud(tool_ball_bowl_pcd, target_points=1000)
-          
+            # tool_ball_bowl_pcd = self.align_point_cloud(tool_ball_bowl_pcd, target_points=3000)
+            
+            tool_ball_bowl_pcd = self.jitter_point_cloud(tool_ball_bowl_pcd)
         
         else : 
+        
             begin_idx = -look_back_frame 
             tool_ball_bowl_pcd = dataset["mix_all_pcd"][(idx-1)*future_eepose_num : idx*future_eepose_num][begin_idx:].astype(np.float32)
-            # tool_ball_bowl_pcd = self.align_point_cloud(tool_ball_bowl_pcd, target_points=1000)
-        
+            # tool_ball_bowl_pcd = self.align_point_cloud(tool_ball_bowl_pcd, target_points=3000)
+            tool_ball_bowl_pcd = self.jitter_point_cloud(tool_ball_bowl_pcd)
 
         # future ee_pose and tool_pcd
         
         eepose = dataset["real_eepose"][idx*future_eepose_num: (idx+1)*future_eepose_num]
         
 
-        # exit()
-
         binary_label = dataset["binary_spillage"][idx]
         
         rotation_6d_pose = qua_to_rotation_6d(eepose)
-        
+        nor_6d_pose = ee_normalize(rotation_6d_pose)
+
         #future ee_pcd
 
         # print(tool_ball_bowl_pcd[0].shape)
@@ -131,7 +132,7 @@ class MultimodalManipulationDataset(Dataset):
         
       
         single_data = {
-            "eepose": rotation_6d_pose,
+            "eepose": nor_6d_pose,
             # "ee_pcd" : tool_pcd,
             # "spillage_type": spillage_index,
             # "tool_with_ball_pcd" : tool_with_ball_pcd, 
@@ -179,6 +180,20 @@ class MultimodalManipulationDataset(Dataset):
         trans_pcd = np.concatenate((transformed_point, pcd_seg.reshape(pcd_seg.shape[0], 1)), axis = 1)
 
         return trans_pcd
+
+    def jitter_point_cloud(self, pcds, sigma=0.002, clip=0.05):
+        """
+        pcd: (N, 3) or (B, N, 3) numpy array
+        """
+        noise_pcd = []
+        for pcd in pcds:
+            
+            noise = np.clip(sigma * np.random.randn(*pcd.shape), -clip, clip)
+            noise[..., 2:] = 0
+            noise_pcd.append(pcd + noise)
+
+        return np.array(noise_pcd)
+        
 
     def check_pcd_color(self, pcd):
 
@@ -353,3 +368,29 @@ def qua_to_rotation_6d(ee_traj):
         rotation_6d_traj[i, 3:] = matrix_to_rotation_6d(ee_rotation_matrix[0:3, 0:3])
 
     return np.array(rotation_6d_traj)  # (H, 9)
+
+def ee_normalize(data):
+    data = torch.tensor(data, dtype=torch.float32)
+    
+    # Correctly load the input range tensor
+    input_range = torch.load('input_range.pt', weights_only = True)  # Removed invalid argument
+
+    input_max = input_range[0, :]
+    input_min = input_range[1, :]
+    # self.input_mean = input_range[2, :]  # Uncomment if mean is needed elsewhere
+    ranges = input_max - input_min
+
+    data_normalize = torch.zeros_like(data)
+
+    for i in range(3):  # Normalize only the first three columns
+        if ranges[i] < 1e-4:
+            # If variance is small, shift to zero-mean without scaling
+            data_normalize[:, i] = data[:, i] - input_min[i]
+        else:
+            # Scale to [-1, 1] range
+            data_normalize[:, i] = -1 + 2 * (data[:, i] - input_min[i]) / ranges[i]
+
+    # Preserve the remaining columns as-is
+    data_normalize[:, 3:] = data[:, 3:]
+
+    return np.array(data_normalize)

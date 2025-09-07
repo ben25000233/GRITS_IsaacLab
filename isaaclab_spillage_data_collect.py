@@ -73,7 +73,7 @@ class Spillage_DataCollection():
         self.real_food = np.load("./ref_pcd/real_food.npy")
 
         self.init_spoon_pcd = np.load("./ref_pcd/ref_spoon_pcd.npy")
-        self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
+        # self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
         self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
    
         self.config_file = "./config/spillage_collect_time.yaml"
@@ -258,13 +258,26 @@ class Spillage_DataCollection():
 
         object_seg = np.full((trans_tool.shape[0], 1), 1)
         trans_tool = np.hstack((trans_tool, object_seg))
- 
+
+        
+
 
         mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
         # mix_all_pcd = np.concatenate((trans_tool, back_tool_world, back_tool_world, self.real_food, self.ref_bowl), axis=0)
         mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 30000)
         mix_all_nor_pcd = self.pcd_functions.nor_pcd(mix_all_pcd)
-        # self.pcd_functions.check_pcd_color(mix_all_nor_pcd)
+
+
+        # nor_real_pcd = np.load("./ref_pcd/nor_real_pcd.npy")
+        # nor_real_pcd[:, 3] = 1
+        # real_pcd = np.load("./ref_pcd/real_pcd.npy")
+        # real_pcd[:, 3] = 1
+        # mix_all_nor_pcd[:, 3] = 2
+        # mix_all_pcd[:, 3] = 2
+        # ckeck_pcd = np.concatenate(( mix_all_pcd, real_pcd), axis=0)
+        # check_nor_pcd = np.concatenate(( mix_all_nor_pcd, nor_real_pcd), axis=0)
+        # self.pcd_functions.check_pcd_color(ckeck_pcd)
+        # self.pcd_functions.check_pcd_color(check_nor_pcd)
         # simulation_app.close()
 
     

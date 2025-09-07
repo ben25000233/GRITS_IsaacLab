@@ -198,6 +198,7 @@ class Grits():
         sim_ee_pose = self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7]
         real_eepose = self.functions.eepose_sim2real_offset(sim_ee_pose.to("cpu"))[0]
 
+
         trans_tool = self.pcd_functions.from_ee_to_spoon(self.pcd_offset, real_eepose)
 
         # np.save(f"ref_spoon_pcd.npy", front_tool_world)
@@ -210,8 +211,21 @@ class Grits():
 
         mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
         # mix_all_pcd = np.concatenate((trans_tool, back_tool_world, back_bowl_world, self.real_food), axis=0)
-        mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 30000)
+        mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 3000)
         mix_all_nor_pcd = self.pcd_functions.nor_pcd(mix_all_pcd)
+
+
+        # nor_real_pcd = np.load("./ref_pcd/nor_real_pcd.npy")
+        # nor_real_pcd[:, 3] = 1
+        
+        # mix_all_nor_pcd[:, 3] = 2
+      
+        # check_nor_pcd = np.concatenate(( mix_all_nor_pcd, nor_real_pcd), axis=0)
+
+        # self.pcd_functions.check_pcd_color(check_nor_pcd)
+        # simulation_app.close()
+
+        
         # self.pcd_functions.check_pcd_color(mix_all_nor_pcd)
         # simulation_app.close()
 

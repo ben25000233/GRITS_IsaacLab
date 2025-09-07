@@ -165,9 +165,9 @@ class Env_functions():
         n = random.randint(3, 5)
 
 
-        # ball_amount = 10
-        # n = 4
-        # r_radius = 0.009
+        ball_amount = 10
+        n = 4
+        r_radius = 0.009
 
 
         self.food_info_cfg["r_radius"] = r_radius

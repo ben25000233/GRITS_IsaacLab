@@ -71,6 +71,24 @@ class Pcd_functions():
 
         seg_pcd = np.concatenate((points, seg_info), axis=1)
         return seg_pcd
+
+    # def nor_pcd(self, points):
+    #     # Split the segmentation info and point coordinates
+    #     # seg_info = points[:, 3].view(-1, 1)  # Reshape to (len(points), 1)
+    #     seg_info = points[:, 3:].view(-1, points.shape[1] - 3)  # Reshape to (len(points), 3)
+    #     points_coords = points[:, :3]
+
+    #     # Define pre-computed centroid and scale factor (m)
+    #     centroid = torch.tensor([0.59115381, -0.1113387, 0.0755547], dtype=torch.float32, device=points.device)
+    #     m = torch.tensor(0.6797932094342392, dtype=torch.float32, device=points.device)
+
+    #     # Normalize the point cloud
+    #     points_coords = points_coords - centroid  # Center the points
+    #     points_coords = points_coords / m        # Scale the points
+
+    #     # Concatenate normalized points with segmentation info
+    #     seg_pcd = torch.cat((points_coords, seg_info), dim=1)
+    #     return seg_pcd
     
     def align_point_cloud(self, points, target_points=10000):
         num_points = len(points)

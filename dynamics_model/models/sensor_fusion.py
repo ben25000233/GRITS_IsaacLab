@@ -71,47 +71,47 @@ class SensorFusion(nn.Module):
     
 
 
-    def ee_normalize(self, data):
+    # def ee_normalize(self, data):
 
-        input_range = torch.load('input_range.pt', weights_only=True)
+    #     input_range = torch.load('input_range_real.pt', weights_only=True)
 
-        self.input_max = input_range[0,:]
-        self.input_min = input_range[1,:]
-        # self.input_mean = input_range[2,:]
+    #     self.input_max = input_range[0,:]
+    #     self.input_min = input_range[1,:]
+    #     # self.input_mean = input_range[2,:]
 
 
-        ranges = self.input_max - self.input_min
-        nor_traj = []
+    #     ranges = self.input_max - self.input_min
+    #     nor_traj = []
 
-        if data.ndim == 2 :
-            data = data.unsqueeze(0)
+    #     if data.ndim == 2 :
+    #         data = data.unsqueeze(0)
 
-        for batch in range(data.shape[0]):
-            mono_data = data[batch]
+    #     for batch in range(data.shape[0]):
+    #         mono_data = data[batch]
             
-            data_normalize = torch.zeros_like(mono_data)
+    #         data_normalize = torch.zeros_like(mono_data)
 
-            for i in range(3):
-                '''
-                if ranges[i] < 1e-4:
-                    # If variance is small, shift to zero-mean without scaling
-                    data_normalize[:, i] = mono_data[:, i] - self.input_mean[i]
-                else:
-                    # Scale to [-1, 1] range
-                    data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]   
-                '''
-                data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]
+    #         for i in range(3):
+    #             '''
+    #             if ranges[i] < 1e-4:
+    #                 # If variance is small, shift to zero-mean without scaling
+    #                 data_normalize[:, i] = mono_data[:, i] - self.input_mean[i]
+    #             else:
+    #                 # Scale to [-1, 1] range
+    #                 data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]   
+    #             '''
+    #             data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]
             
-            data_normalize[:, 3:] = mono_data[:, 3:]
-            nor_traj.append(data_normalize)      
+    #         data_normalize[:, 3:] = mono_data[:, 3:]
+    #         nor_traj.append(data_normalize)      
 
-        nor_traj = torch.stack(nor_traj)
-        a,b,c = nor_traj.shape
+    #     nor_traj = torch.stack(nor_traj)
+    #     a,b,c = nor_traj.shape
     
-        output = nor_traj.reshape(a, b*c)
+    #     output = nor_traj.reshape(a, b*c)
    
 
-        return output
+    #     return output
 
     # def forward_encoder(self, ee_pose, ee_pcd, hand_depth, front_depth, hand_pcd, front_pcd, hand_seg, front_seg):
     def forward_encoder(self, ee_pose, front_pcd, ):
@@ -130,9 +130,9 @@ class SensorFusion(nn.Module):
    
         # Get encoded outputs
         # modify
-        nor_pose = self.ee_normalize(ee_pose)
+        # nor_pose = self.ee_normalize(ee_pose)
         # nor_pose = ee_pose
-        pose_out = self.eepose_encoder(nor_pose.reshape(ee_pose.shape))             # shpae : torch.Size([batch_size , 7, 128])
+        pose_out = self.eepose_encoder(ee_pose.reshape(ee_pose.shape))             # shpae : torch.Size([batch_size , 7, 128])
    
         '''
         future_steps = ee_pose.shape[1]
