@@ -37,19 +37,19 @@ class Env_functions():
             self.food_info_cfg = yaml.safe_load(f)
 
 
-        with open("noise_pairs.yaml", "r") as stream:
+        with open("./init_setting_for_val/noise_pairs.yaml", "r") as stream:
             noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
 
+        self.noise_index = noise_cfg["index"]
+  
+        self.noise = noise_cfg["noises"][20]
 
-        noise_index = noise_cfg["index"]
-        self.noise = noise_cfg["noises"][noise_index]
-
-        if noise_index == 49 :
+        if self.noise_index == 49 :
             noise_cfg["index"] = 0
         else :
             noise_cfg["index"] += 1
       
-        with open("noise_pairs.yaml", "w") as yaml_file:
+        with open("./init_setting_for_val/noise_pairs.yaml", "w") as yaml_file:
             yaml.dump(noise_cfg, yaml_file, default_flow_style=False)
 
     def add_soft(self): 
@@ -165,9 +165,33 @@ class Env_functions():
         n = random.randint(3, 5)
 
 
-        ball_amount = 10
-        n = 4
-        r_radius = 0.009
+        # ball_amount = 1
+
+        # mass = 0.003
+        # friction = 0.5
+
+        # r_radius = 0.0025 + (0.01 - 0.0025)*(self.noise_index+1)/50
+        # sphere
+        # r_radius = 0.009*(self.noise_index+1)/25
+        # ball_amount = 9
+        # n = 4
+
+        # cube
+        # r_radius = 0.008
+        # ball_amount = 6
+        # n = 3
+
+        # cone
+        # r_radius = 0.008
+        # ball_amount = 15
+        # n = 3
+
+        # cylinder
+        # r_radius = 0.008
+        # ball_amount = 6
+        # n = 3
+
+        # ball_amount = 1
 
 
         self.food_info_cfg["r_radius"] = r_radius
@@ -177,18 +201,6 @@ class Env_functions():
         self.food_info_cfg["ball_amount"] = ball_amount
         self.food_info_cfg["len"] = n
 
-        
-
-
-
-
-        # r_radius = self.cfg["food_property"]["r_radius"]
-        # l_radius = self.cfg["food_property"]["l_radius"]
-        # mass = self.cfg["food_property"]["mass"]
-        # friction = self.cfg["food_property"]["friction"]
-        # ball_amount = self.cfg["food_property"]["ball_amount"]
-        # ball_shape = self.cfg["food_property"]["shape"]
-        # n = self.cfg["food_property"]["len"]
 
         rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, x_offset = 0.005)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
@@ -199,9 +211,9 @@ class Env_functions():
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=mass),
             collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0)),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)),
             # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 1.0)),
-            physics_material = sim_utils.RigidBodyMaterialCfg(static_friction=friction, dynamic_friction=friction),
+            physics_material = sim_utils.RigidBodyMaterialCfg(static_friction=friction, dynamic_friction=friction/2),
         )
 
         cfg_cube = sim_utils.CuboidCfg(
@@ -209,7 +221,7 @@ class Env_functions():
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.001),
             collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0)),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)),
             physics_material = sim_utils.RigidBodyMaterialCfg(static_friction=friction, dynamic_friction=friction),
         )
 
@@ -219,7 +231,7 @@ class Env_functions():
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.001),
             collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0)),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)),
             physics_material = sim_utils.RigidBodyMaterialCfg(static_friction=friction, dynamic_friction=friction),
         )
 
@@ -229,7 +241,7 @@ class Env_functions():
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=0.001),
             collision_props=sim_utils.CollisionPropertiesCfg(),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0)),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 1.0)),
             physics_material = sim_utils.RigidBodyMaterialCfg(static_friction=friction, dynamic_friction=friction),
         )
 
@@ -244,8 +256,8 @@ class Env_functions():
         # )
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
-        # obj_cfg = random.choice(shapes)
-        obj_cfg = cfg_cube
+        obj_cfg = random.choice(shapes)
+        obj_cfg = cfg_sphere
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
 
 
@@ -300,6 +312,8 @@ class Env_functions():
         if cam_type == "front":
             cam_pos = (front_cam_pos[0], front_cam_pos[1], front_cam_pos[2])
             cam_rot = (front_cam_rot[3], front_cam_rot[0], front_cam_rot[1], front_cam_rot[2])
+
+       
 
             camera = CameraCfg(
             prim_path="{ENV_REGEX_NS}/front_cam",
@@ -384,9 +398,16 @@ class Env_functions():
             start_idx = layer * n * n
             end_idx = start_idx + n * n
 
+            noise_x = random.uniform(-0.03, 0.03)
+            noise_y = random.uniform(-0.03, 0.03)
+
             # Set x, y, and z coordinates for this layer
-            env_origins[start_idx:end_idx, 0] = xx + 0.58 + self.noise[0]*layer*0.1*((-1)**layer)
-            env_origins[start_idx:end_idx, 1] = yy - 0.12 + self.noise[1]*layer*0.1*((-1)**layer)
+            env_origins[start_idx:end_idx, 0] = xx + 0.58 + noise_x
+            env_origins[start_idx:end_idx, 1] = yy - 0.12 + noise_y
+
+            # Set x, y, and z coordinates for this layer
+            # env_origins[start_idx:end_idx, 0] = xx + 0.58 + self.noise[0]*layer*0.1*((-1)**layer)
+            # env_origins[start_idx:end_idx, 1] = yy - 0.12 + self.noise[1]*layer*0.1*((-1)**layer)
 
             # env_origins[start_idx:end_idx, 0] = xx + 0.52
             # env_origins[start_idx:end_idx, 1] = yy - 0.13

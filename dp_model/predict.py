@@ -32,7 +32,7 @@ class LfD():
     def __init__(self):
 
         # normalize
-        input_range = torch.load('input_range.pt')
+        input_range = torch.load('input_range_sim.pt')
       
         self.input_max = input_range[0,:]
         self.input_min = input_range[1,:]
@@ -199,7 +199,7 @@ class LfD():
         return food_center_pose[0:3, 3], goal_pose[0:3, 3]
     
     def _normalize(self, data, input_max, input_min, input_mean):
-      
+       
         ranges = input_max - input_min
         data_normalize = torch.zeros_like(data)
         for i in range(3):
@@ -273,7 +273,7 @@ class LfD():
             # print('obs_in', obs_in.shape) # torch.Size([1, 5, 4, 240, 320])
             # print(np.array(eepose_list).shape) # (5, 7)
             
-            action = self.policy.predict_action((obs_in, ee_in, seg_pcd, guidance_trigger))  
+            action, n_ori_action, n_pre_action = self.policy.predict_action((obs_in, ee_in, seg_pcd, guidance_trigger))  
     
 
             # transform rotate
@@ -291,7 +291,7 @@ class LfD():
                
             # euler_action = np.array(euler_action)
 
-        return action_publish
+        return action_publish, n_ori_action, n_pre_action
               
 
 

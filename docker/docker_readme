@@ -25,7 +25,7 @@ docker run --name isaac-lab --shm-size="16g" --entrypoint bash -it --gpus all -e
    isaac-lab-base
 
 
-docker run --name isaac-lab --shm-size="16g" --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
+docker run --name isaac-lab-cube --shm-size="16g" --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
    -e "PRIVACY_CONSENT=Y" \
    -e "PRIVACY_CONSENT=Y" \
    -e DISPLAY=$DISPLAY \
@@ -40,9 +40,8 @@ docker run --name isaac-lab --shm-size="16g" --entrypoint bash -it --gpus all -e
    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
    -v /media/hcis-s22/data/dp_experiments/0623_single/ckpt:/workspace/ckpt \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/mix_spillage_dataset:/workspace/train_dataset \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/val_spillage_dataset:/workspace/val_dataset \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/mix_spillage_dataset:/workspace/spillage_dataset \
+   -v /media/hcis-s22/data/isaaclab_spillage_dataset/single_shape_spillage_dataset/small_cube_only/:/workspace/train_dataset \
+   -v /media/hcis-s22/data/isaaclab_spillage_dataset/small_val_spillage_dataset:/workspace/val_dataset \
    isaac-lab-base
 
 

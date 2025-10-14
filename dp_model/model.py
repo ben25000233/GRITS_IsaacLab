@@ -209,7 +209,7 @@ class DiffusionPolicy(nn.Module):
         self.obs_feature_dim = obs_feature_dim
 
         # normalization
-        input_range = torch.load('input_range.pt')
+        input_range = torch.load('input_range_sim.pt')
         self.input_max = input_range[0,:]
         self.input_min = input_range[1,:]
         self.input_mean = input_range[2,:]
@@ -295,19 +295,21 @@ class DiffusionPolicy(nn.Module):
     
     def spillage_objective(self, traj, pre_spillage):  
 
-        # pre_spillage = torch.log(pre_spillage)
+        # pre_spillage = torch.sqrt(pre_spillage)
         # make_smoothing_spline(x, y, lam=lam)
         guided_grad = torch.autograd.grad(pre_spillage, traj)[0]
+        
         # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.01, max = 0.01)
-        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.01, max = 0.01)
+        guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.05, max = 0.05)
         # guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
+        guided_grad[..., 2:] = torch.clip(guided_grad[..., 2:], min=-0.0, max = 0.0)
 
 
-        z = guided_grad[:, :, 2].squeeze(0).to('cpu')
-        y = np.linspace(0, 1, 16)
-        spline = UnivariateSpline(y, z, s=0.2)  # 's' is the smoothing factor
-        z_smooth = spline(y)
-        guided_grad[:, :, 2] = torch.tensor(z_smooth).to(self.device)
+        # z = guided_grad[:, :, 2].squeeze(0).to('cpu')
+        # y = np.linspace(0, 1, 16)
+        # spline = UnivariateSpline(y, z, s=0.2)  # 's' is the smoothing factor
+        # z_smooth = spline(y)
+        # guided_grad[:, :, 2] = torch.tensor(z_smooth).to(self.device)
 
         # print(torch.mean(guided_grad[0,self.start:self.end-1, 1:3], dim = 0))
         # guided_grad = torch.clip(guided_grad, max=0.005, min=-0.01)
@@ -317,7 +319,8 @@ class DiffusionPolicy(nn.Module):
     def spillage_predict(self, traj, seg_pcd_list):
         
         seg_pcd_array = seg_pcd_list
-        eepose_array = traj[0][self.start:self.end]
+        eepose_array = traj[0][self.start:self.end] # shape : torch.Size([12, 9])
+
 
 
         spillage_logic = self.spillage_predictor.validate(eepose_array, seg_pcd_array)
@@ -357,15 +360,17 @@ class DiffusionPolicy(nn.Module):
         model = self.model
         scheduler = self.noise_scheduler
 
-        traj = torch.randn(
-            size=condition_data.shape, 
-            dtype=condition_data.dtype,
-            device=condition_data.device,
-            generator=generator)
+        # traj = torch.randn(
+        #     size=condition_data.shape, 
+        #     dtype=condition_data.dtype,
+        #     device=condition_data.device,
+        #     generator=generator)
 
         # fix init noise traj for check 
-        traj = np.load('traj_init.npy')
+        traj = np.load('./init_setting_for_val/traj_init.npy')
         traj = torch.tensor(traj).to(self.device)
+
+        all_grad = []
 
         traj_guided = traj.clone()
     
@@ -398,15 +403,17 @@ class DiffusionPolicy(nn.Module):
                             # clean trajectory to calcutate gradient
                             alpha_t = scheduler.alphas_cumprod[t]  # Cumulative product alpha_t
                             clean_traj = (traj_guided - (1 - alpha_t).sqrt() * model_output_guided) / alpha_t.sqrt()
-                            clean_traj = clean_traj.detach().requires_grad_(True)
+                            clean_traj = clean_traj.detach().requires_grad_(True) # shape : 1, 16, 9
+
                             
                             # spillage guidance
-                      
                             spillage_prob= self.spillage_predict(clean_traj, obs_in.float()) 
-                            print(f"spillage_prob : {spillage_prob}")
+                            # print(f"spillage_prob : {spillage_prob}")
                             
                             guided_grad = self.spillage_objective(clean_traj, spillage_prob)
-
+                            
+                            all_grad.append(torch.mean(guided_grad[0, 4:], dim = 1)[:3]* self.spillage_weight)
+                           
                             # quantity guidance
                             # current_pcd = obs_in[0].float()
                             # imagine_traj = self.quan_predictor.validate(current_pcd.unsqueeze(0), self.quan_goal.unsqueeze(0))
@@ -464,27 +471,29 @@ class DiffusionPolicy(nn.Module):
                 
                 guided_traj = traj_guided
             
-
+            all_grad_tensor = torch.stack(all_grad, dim=0)  # Stack tensors along a new dimension
+            # print("all_grad: ", torch.mean(all_grad_tensor, dim=0))
+            # print(torch.tensor(all_grad))
 
         # calaulate original trajectory
-        if self.cfg.check_traj == True or start_guidance == False :
-            # ori trajectory
-            for t in scheduler.timesteps:
-                # 1. apply conditioning
-                traj[condition_mask] = condition_data[condition_mask]
-                # 2. predict model output
+        # if self.cfg.check_traj == True or start_guidance == False :
+        # ori trajectory
+        for t in scheduler.timesteps:
+            # 1. apply conditioning
+            traj[condition_mask] = condition_data[condition_mask]
+            # 2. predict model output
+        
+            model_output = model(traj, t, global_cond=global_cond)
+            # 3. compute previous image: x_t -> x_t-1
+            traj = scheduler.step(
+                model_output, t, traj, 
+                generator=generator
+                ).prev_sample
             
-                model_output = model(traj, t, global_cond=global_cond)
-                # 3. compute previous image: x_t -> x_t-1
-                traj = scheduler.step(
-                    model_output, t, traj, 
-                    generator=generator
-                    ).prev_sample
-                
-                if t<=self.cfg.testing.start_guided_iteration:
-                    show_ori_traj.append(traj.to("cpu"))     
+            if t<=self.cfg.testing.start_guided_iteration:
+                show_ori_traj.append(traj.to("cpu"))     
 
-            traj[condition_mask] = condition_data[condition_mask] 
+        traj[condition_mask] = condition_data[condition_mask] 
 
 
         # for show trajectory
@@ -505,7 +514,7 @@ class DiffusionPolicy(nn.Module):
     
         if start_guidance:
             
-            return guided_traj, np.array(show_ori_traj), np.array(show_guided_traj)
+            return guided_traj, traj, np.array(show_ori_traj), np.array(show_guided_traj)
         else : 
             return traj, None, None
         
@@ -530,7 +539,7 @@ class DiffusionPolicy(nn.Module):
         
         if self.cfg.testing.guided_mode=="post_processing":
             print("in opt")
-            nsample, show_ori_traj, show_guided_traj = self.conditional_sample(
+            nsample, n_ori_traj, show_ori_traj, show_guided_traj = self.conditional_sample(
                 cond_data, 
                 cond_mask,
                 global_cond=global_cond,
@@ -582,7 +591,7 @@ class DiffusionPolicy(nn.Module):
                 # opt_traj = _denormalize(nor_opt_traj, self.input_max, self.input_min, self.input_mean)
         
         else:
-            nsample, show_ori_traj, show_guided_traj = self.conditional_sample(
+            nsample, n_ori_traj, show_ori_traj, show_guided_traj = self.conditional_sample(
                 cond_data, 
                 cond_mask,
                 global_cond=global_cond,
@@ -594,15 +603,22 @@ class DiffusionPolicy(nn.Module):
 
             # unnormalize prediction
             naction_pred = nsample[...,:self.action_dim]
+            n_ori_traj = n_ori_traj[...,:self.action_dim]
             action_pred = _denormalize(naction_pred, self.input_max, self.input_min, self.input_mean)
+
 
         # get action
         start = self.n_obs_steps-1
         end = start + self.n_action_steps
         action = action_pred[:,start:end]
 
+        naction_pred = naction_pred[:,start:end]
+        n_ori_traj = n_ori_traj[:,start:end]
+
+
+
         # return action, naction_pred[:,start:end], show_ori_traj, show_guided_traj
-        return action
+        return action, n_ori_traj, naction_pred
     
     def Bo_objective(self, weight):
         traj_clone = self.temp_traj.clone()
@@ -677,6 +693,22 @@ def show_trajectory(ori_traj=None, guided_traj=None, opt_traj=None):
     # Show plot
     plt.show()
 
+    x_dif = 0
+    y_dif = 0
+    z_dif = 0
+    # print(ori_traj.shape, guided_traj.shape)
+    
+    for i in range(len(ori_traj[0])):
+        single_x_diff = guided_traj[0, i, 0] - ori_traj[0, i, 0]
+        single_y_diff = guided_traj[0, i, 1] - ori_traj[0, i, 1]
+        single_z_diff = guided_traj[0, i, 2] - ori_traj[0, i, 2]
+        x_dif += single_x_diff
+        y_dif += single_y_diff
+        z_dif += single_z_diff
+    print("x_dif= ", x_dif/len(ori_traj[0]))
+    print("y_dif= ", y_dif/len(ori_traj[0]))
+    print("z_dif= ", z_dif/len(ori_traj[0]))
+
 
 def get_translation_matrix(x, y, z):
     return torch.tensor([
@@ -686,21 +718,21 @@ def get_translation_matrix(x, y, z):
     [0, 0, 0, 1]
     ])
 
-from pytorch3d.transforms import rotation_6d_to_matrix, matrix_to_rotation_6d
-def from_ee_to_spoon(ee_traj):    
-    T_spoon_to_center = get_translation_matrix(0.03, 0, 0.17)
-    ee_traj = ee_traj.squeeze(0) # (H, 9)
-    spoon_traj = torch.zeros_like(ee_traj) # (H, 9)
+# from pytorch3d.transforms import rotation_6d_to_matrix, matrix_to_rotation_6d
+# def from_ee_to_spoon(ee_traj):    
+#     T_spoon_to_center = get_translation_matrix(0.03, 0, 0.17)
+#     ee_traj = ee_traj.squeeze(0) # (H, 9)
+#     spoon_traj = torch.zeros_like(ee_traj) # (H, 9)
 
-    for i in range(ee_traj.shape[1]):
-        ee = ee_traj[i]
-        ee_pose = torch.eye(4)
-        ee_pose[0:3, 3] = ee[0:3]
-        ee_pose[0:3, 0:3] = rotation_6d_to_matrix(ee[3:])
-        spoon_pose = torch.mm(ee_pose, T_spoon_to_center)
-        spoon_traj[i, 0:3] = spoon_pose[0:3, 3]
-        spoon_traj[i, 3:] = matrix_to_rotation_6d(spoon_pose[0:3, 0:3])
-    return spoon_traj.unsqueeze(0) # (B, H, 9)
+#     for i in range(ee_traj.shape[1]):
+#         ee = ee_traj[i]
+#         ee_pose = torch.eye(4)
+#         ee_pose[0:3, 3] = ee[0:3]
+#         ee_pose[0:3, 0:3] = rotation_6d_to_matrix(ee[3:])
+#         spoon_pose = torch.mm(ee_pose, T_spoon_to_center)
+#         spoon_traj[i, 0:3] = spoon_pose[0:3, 3]
+#         spoon_traj[i, 3:] = matrix_to_rotation_6d(spoon_pose[0:3, 0:3])
+#     return spoon_traj.unsqueeze(0) # (B, H, 9)
 
 # def _normalize(data, input_max, input_min, input_mean):
 #     ranges = input_max - input_min

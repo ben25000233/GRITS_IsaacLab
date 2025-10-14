@@ -69,12 +69,15 @@ class Spillage_DataCollection():
         self.gt_front = np.load("./real_cam_pose/front_cam2base.npy")
         self.gt_back = np.load("./real_cam_pose/back_cam2base.npy")
 
-        self.ref_bowl = np.load("./ref_pcd/ref_bowl_pcd.npy")
-        self.real_food = np.load("./ref_pcd/real_food.npy")
+        # self.ref_bowl = np.load("./ref_pcd/ref_bowl_pcd.npy")
+        # self.real_food = np.load("./ref_pcd/real_food.npy")
 
-        self.init_spoon_pcd = np.load("./ref_pcd/ref_spoon_pcd.npy")
-        # self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
-        self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
+        # self.init_spoon_pcd = np.load("./ref_pcd/ref_spoon_pcd.npy")
+        # # self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
+        # self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
+
+        self.ref_bowl = np.load("./ref_pcd/small_bowl_pcd.npy")
+        self.pcd_offset = np.load("./ref_pcd/small_tool_offset.npy")
    
         self.config_file = "./config/spillage_collect_time.yaml"
 
@@ -110,6 +113,7 @@ class Spillage_DataCollection():
         self.front_depth_list = [[] for _ in range(self.num_envs)]
         self.front_seg_list = [[] for _ in range(self.num_envs)]
         self.mix_all_pcd_list = [[] for _ in range(self.num_envs)]
+        self.food_pcd_list = [[] for _ in range(self.num_envs)]
 
         # back camera data
         self.back_rgb_list = [[] for _ in range(self.num_envs)]
@@ -185,7 +189,7 @@ class Spillage_DataCollection():
         back_depth_image  = self.back_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
         back_seg_image  = self.back_camera.data.output["semantic_segmentation"][0].cpu().numpy()
 
-        # plt.imshow(back_rgb_image)
+        # plt.imshow(front_rgb_image)
         # plt.show()
         # simulation_app.close()
 
@@ -195,13 +199,15 @@ class Spillage_DataCollection():
         object_seg = np.full((back_food_world.shape[0], 1), 2)
         back_food_world = np.hstack((back_food_world, object_seg))
 
+        food_pcd = self.pcd_functions.align_point_cloud(back_food_world, target_points = 10000)
+        back_food_world = self.pcd_functions.align_point_cloud(back_food_world, target_points = 1000)
 
 
-        bowl_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "bowl", object_id = self.bowl_semantic_id)
-        back_bowl_world = self.pcd_functions.transform_to_world(bowl_pcd[:, :3], self.gt_back)
-        # object_seg must be 4
-        object_seg = np.full((back_bowl_world.shape[0], 1), 3)
-        back_bowl_world = np.hstack((back_bowl_world, object_seg))
+        # bowl_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "bowl", object_id = self.bowl_semantic_id)
+        # back_bowl_world = self.pcd_functions.transform_to_world(bowl_pcd[:, :3], self.gt_back)
+        # # object_seg must be 4
+        # object_seg = np.full((back_bowl_world.shape[0], 1), 3)
+        # back_bowl_world = np.hstack((back_bowl_world, object_seg))
 
 
         # bowl_pcd = self.pcd_functions.depth_to_point_cloud(front_depth_image[..., 0], front_seg_image[..., 0], object_type = "bowl", object_id = self.bowl_semantic_id)
@@ -222,14 +228,14 @@ class Spillage_DataCollection():
 
         
         # get front_tool for get ref spoon pcd 
-        tool_pcd = self.pcd_functions.depth_to_point_cloud(front_depth_image[..., 0], front_seg_image[..., 0], object_type = "robot", object_id = self.robot_semantic_id)
-        front_tool_world = self.pcd_functions.transform_to_world(tool_pcd[:, :3], self.gt_front)
-        front_tool_world = front_tool_world[front_tool_world[:, 0] > 0.1]
+        # tool_pcd = self.pcd_functions.depth_to_point_cloud(front_depth_image[..., 0], front_seg_image[..., 0], object_type = "robot", object_id = self.robot_semantic_id)
+        # front_tool_world = self.pcd_functions.transform_to_world(tool_pcd[:, :3], self.gt_front)
+        # front_tool_world = front_tool_world[front_tool_world[:, 0] > 0.1]
         # front_tool_world = front_tool_world[front_tool_world[:, 2] < 0.2]
         # front_tool_world = self.pcd_functions.align_point_cloud(front_tool_world, target_points = 10000)
 
-        object_seg = np.full((front_tool_world.shape[0], 1), 5)
-        front_tool_world = np.hstack((front_tool_world, object_seg))
+        # object_seg = np.full((front_tool_world.shape[0], 1), 5)
+        # front_tool_world = np.hstack((front_tool_world, object_seg))
         
         # self.pcd_functions.check_pcd_color(front_tool_world)
         # simulation_app.close()
@@ -237,11 +243,11 @@ class Spillage_DataCollection():
 
 
         # get back_tool for view
-        tool_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "robot", object_id = self.robot_semantic_id)
-        back_tool_world = self.pcd_functions.transform_to_world(tool_pcd[:, :3], self.gt_back)
-        back_tool_world = back_tool_world[back_tool_world[:, 0] > 0.1]
-        object_seg = np.full((back_tool_world.shape[0], 1), 3)
-        back_tool_world = np.hstack((back_tool_world, object_seg))
+        # tool_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "robot", object_id = self.robot_semantic_id)
+        # back_tool_world = self.pcd_functions.transform_to_world(tool_pcd[:, :3], self.gt_back)
+        # back_tool_world = back_tool_world[back_tool_world[:, 0] > 0.1]
+        # object_seg = np.full((back_tool_world.shape[0], 1), 3)
+        # back_tool_world = np.hstack((back_tool_world, object_seg))
         
 
         
@@ -263,8 +269,10 @@ class Spillage_DataCollection():
 
 
         mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
+    
         # mix_all_pcd = np.concatenate((trans_tool, back_tool_world, back_tool_world, self.real_food, self.ref_bowl), axis=0)
-        mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 30000)
+        
+        # mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 30000)
         mix_all_nor_pcd = self.pcd_functions.nor_pcd(mix_all_pcd)
 
 
@@ -291,6 +299,7 @@ class Spillage_DataCollection():
         self.back_seg_list[0].append(back_seg_image)
 
         self.mix_all_pcd_list[0].append(mix_all_nor_pcd)
+        self.food_pcd_list[0].append(food_pcd)
 
     
     def run_simulator(self, sim: sim_utils.SimulationContext, scene: InteractiveScene):
@@ -407,11 +416,10 @@ class Spillage_DataCollection():
                     self.get_info(robot_entity_cfg)
                     offset = self.apply_offset(current_goal_idx)
                     modify_ee_goals += offset
+
                     
                     goal_pose = modify_ee_goals[current_goal_idx]
 
-          
-                    
                     joint_pos = self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids]
                     ik_commands[:] = goal_pose
                     joint_pos_des = joint_pos[:, robot_entity_cfg.joint_ids].clone()
@@ -471,6 +479,7 @@ class Spillage_DataCollection():
         record_len = self.action_horizon * len(self.spillage_amount[0])
 
         mix_all_pcd = self.functions.list_to_nparray(self.mix_all_pcd_list)[:record_len]
+        food_pcd = self.functions.list_to_nparray(self.food_pcd_list)[:record_len]
         sim_eepose = self.functions.list_to_nparray(self.record_ee_pose)[:record_len]
         real_eepose = self.functions.eepose_sim2real_offset(sim_eepose)[:record_len]
 
@@ -502,6 +511,7 @@ class Spillage_DataCollection():
             'real_eepose' : real_eepose,
             'sim_eepose' : sim_eepose,
             'mix_all_pcd' : mix_all_pcd,
+            'food_pcd' : food_pcd,
             'spillage_amount': spillage_amount,
             'spillage_vol': spillage_vol,
             'binary_spillage' : binary_spillage,
@@ -522,7 +532,7 @@ class Spillage_DataCollection():
         import os 
         print("store data")
         # output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_26_all_sphere/"
-        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/0901_all_cube/"
+        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/1010_sphere/"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -601,7 +611,8 @@ def main():
     sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
     # Set main camera
-    sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])
+    # sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])
+    sim.set_camera_view([1, -0.0, 0.5], [0.455, -0.11, 0.03])
     # Design scene
     scene_cfg = TableTopSceneCfg(num_envs=args_cli.num_envs, env_spacing=2.0)
  

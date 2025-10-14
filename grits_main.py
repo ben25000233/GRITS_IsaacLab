@@ -52,6 +52,8 @@ from functions.pcd_functions import Pcd_functions
 from functions.Env_functions import TableTopSceneCfg
 from functions.functions import functions
 
+np.random.seed(42)
+torch.manual_seed(42)
 
 
 class Grits():
@@ -75,12 +77,15 @@ class Grits():
         self.real_food = np.load("./ref_pcd/real_food.npy")
 
         self.init_spoon_pcd = np.load("./ref_pcd/ref_spoon_pcd.npy")
-        self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
+        # self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
 
         self.eepose_offset = 0.035
 
+        # self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
 
-        self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
+        self.ref_bowl = np.load("./ref_pcd/small_bowl_pcd.npy")
+        self.pcd_offset = np.load("./ref_pcd/small_tool_offset.npy")
+
         
         self.pcd_functions = Pcd_functions()
         self.functions = functions()
@@ -121,6 +126,7 @@ class Grits():
         self.binary_scoop = [[] for _ in range(self.num_envs)]
         self.pre_spillage = np.zeros(self.num_envs)
 
+        self.predict_acc = []
 
 
     def get_info(self, robot_entity_cfg = None):
@@ -134,8 +140,23 @@ class Grits():
         back_depth_image  = self.back_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
         back_seg_image  = self.back_camera.data.output["semantic_segmentation"][0].cpu().numpy()
 
+        # limage_array = np.load("image_array.npy")[0]
+
+        # print(back_rgb_image.shape)
+        # print(limage_array.shape)
+
+        # if np.array_equal(back_rgb_image, limage_array):
+        #     print("same img data")
+        # else :
+        #     print("different img data")
+        
+
         # plt.imshow(back_rgb_image)
         # plt.show()
+
+        # plt.imshow(limage_array)
+        # plt.show()
+
         # simulation_app.close()
 
 
@@ -146,11 +167,11 @@ class Grits():
 
 
 
-        bowl_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "bowl", object_id = self.bowl_semantic_id)
-        back_bowl_world = self.pcd_functions.transform_to_world(bowl_pcd[:, :3], self.gt_back)
+        # bowl_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "bowl", object_id = self.bowl_semantic_id)
+        # back_bowl_world = self.pcd_functions.transform_to_world(bowl_pcd[:, :3], self.gt_back)
         # object_seg must be 4
-        object_seg = np.full((back_bowl_world.shape[0], 1), 3)
-        back_bowl_world = np.hstack((back_bowl_world, object_seg))
+        # object_seg = np.full((back_bowl_world.shape[0], 1), 3)
+        # back_bowl_world = np.hstack((back_bowl_world, object_seg))
 
 
         # bowl_pcd = self.pcd_functions.depth_to_point_cloud(front_depth_image[..., 0], front_seg_image[..., 0], object_type = "bowl", object_id = self.bowl_semantic_id)
@@ -198,7 +219,6 @@ class Grits():
         sim_ee_pose = self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7]
         real_eepose = self.functions.eepose_sim2real_offset(sim_ee_pose.to("cpu"))[0]
 
-
         trans_tool = self.pcd_functions.from_ee_to_spoon(self.pcd_offset, real_eepose)
 
         # np.save(f"ref_spoon_pcd.npy", front_tool_world)
@@ -207,11 +227,11 @@ class Grits():
 
         object_seg = np.full((trans_tool.shape[0], 1), 1)
         trans_tool = np.hstack((trans_tool, object_seg))
- 
+
+        back_food_world = self.pcd_functions.align_point_cloud(back_food_world, target_points = 1000)
 
         mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
-        # mix_all_pcd = np.concatenate((trans_tool, back_tool_world, back_bowl_world, self.real_food), axis=0)
-        mix_all_pcd = self.pcd_functions.align_point_cloud(mix_all_pcd, target_points = 3000)
+
         mix_all_nor_pcd = self.pcd_functions.nor_pcd(mix_all_pcd)
 
 
@@ -245,9 +265,12 @@ class Grits():
   
         if len(self.back_rgb_list[0]) == 1:
 
-            begin_rgb = self.back_rgb_list[0].copy()
-      
-            images = [np.array(begin_rgb[0])] * 5
+            # begin_rgb = np.array(self.back_rgb_list[0]).copy()
+            # print(np.array(self.back_rgb_list).shape)
+            # simulation_app.close()
+
+            # images = [np.array(begin_rgb[0])] * 5
+            images = [np.array(self.back_rgb_list[0])[0]] * 5 
             depths = [np.array(self.back_depth_list[0])[0].astype(np.float32)] * 5 
             eepose = [np.array(self.record_ee_pose[0])[0].astype(np.float32)] * 5
             seg_pcd = [np.array(self.mix_all_pcd_list[0])[0]]*3
@@ -260,16 +283,20 @@ class Grits():
             seg_pcd = self.mix_all_pcd_list[0][-3:]
             # self.pcd_functions.check_pcd_color(np.array(seg_pcd[0]))
 
-        
+
         image_array = np.array(images)
         depth_array = np.array(depths)
         eepose_array = np.array(eepose)
         seg_pcd_array = np.array(seg_pcd)
- 
 
-        eeposes = self.lfd.run_model(image_array, depth_array, eepose_array, seg_pcd_array, guidance_trigger = guidance_trigger)
 
-        return eeposes
+        eeposes, n_ori_action, n_pre_action = self.lfd.run_model(image_array, depth_array, eepose_array, seg_pcd_array, guidance_trigger = guidance_trigger)
+     
+
+        seg_pcd_array = torch.tensor(seg_pcd_array).to(self.device)
+
+
+        return eeposes, seg_pcd_array, n_ori_action, n_pre_action
 
     
     def run_simulator(self, sim: sim_utils.SimulationContext, scene: InteractiveScene):
@@ -375,23 +402,25 @@ class Grits():
                             guidance_trigger = True
                         else :
                             guidance_trigger = False
-                        action = self.move_generate(guidance_trigger = guidance_trigger)
+                        action, seg_pcd_array, n_ori_action, n_pre_action = self.move_generate(guidance_trigger = guidance_trigger)
+                        # print(n_pre_action)
+                        # simulation_app.close()
+
+                        ori_spillage_logic = self.spillage_predictor.validate(n_ori_action, seg_pcd_array)
+                        ori_spillage_prob = torch.nn.functional.softmax(ori_spillage_logic[0], dim=-1)[1]
+
+                        pre_spillage_logic = self.spillage_predictor.validate(n_pre_action, seg_pcd_array)
+                        pre_spillage_prob = torch.nn.functional.softmax(pre_spillage_logic[0], dim=-1)[1]
+
+                        self.predict_acc.append(pre_spillage_prob.item())
+
+                        print()
+                        print(f"original spillage prob: {ori_spillage_prob}")
+                        print(f"predicted spillage prob: {pre_spillage_prob}")
+                        print()
                         
                         print("current_goal_idx : ", current_goal_idx)
                         self.cal_spillage_scooped(scene = scene, reset = 0)
-
-                        # # for checking spillage
-                        # if current_goal_idx != 0 : 
-                        #     pcd_list = torch.tensor(np.array(self.mix_all_pcd_list[0][-3:]), dtype = torch.float32).to("cuda:0")
-                        #     traj = self.qua_to_rotation_6d(action).unsqueeze(0).to("cuda:0")
-
-                        #     nor_traj = self.functions._denormalize(traj)[0]
-                        #     spillage_logic = self.spillage_predictor.validate(nor_traj, pcd_list)
-                        #     spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
-
-                        #     print(spillage_prob)
-                        #     # self.pcd_functions.check_pcd_color(np.array(pcd_list[0].to("cpu")))
-                        #     # simulation_app.close()
 
                     # if current_goal_idx < 72 :
                     #     goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
@@ -402,7 +431,7 @@ class Grits():
                     # else :
                     #     break
                     
-                    if current_goal_idx < 90 :
+                    if current_goal_idx < 80 :
                         goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
                     else :
                         break
@@ -417,11 +446,6 @@ class Grits():
                     # change goal
                     current_goal_idx += 1
 
-         
-
-              
-                    
-            
             # obtain quantities from simulation
             jacobian = self.robot.root_physx_view.get_jacobians()[:, ee_jacobi_idx, :, robot_entity_cfg.joint_ids]
             ee_pose_w = self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7]
@@ -434,9 +458,7 @@ class Grits():
             # compute the joint commands
             joint_pos_des = diff_ik_controller.compute(ee_pos_b, ee_quat_b, jacobian, joint_pos)
 
-
             frame_num += 1  
-
 
             # apply actions
             self.robot.set_joint_position_target(joint_pos_des, joint_ids=robot_entity_cfg.joint_ids)
@@ -464,8 +486,17 @@ class Grits():
         shape = self.cfg["food_property"]["shape"]
         weight = self.cfg.testing.spillage_guided.weight
 
-        file_name = f"result/size/R{r_radius}_M{mass}_A{ball_amount}_F{friction}_S{shape}_W{weight}.json"
 
+        with open("./init_setting_for_val/noise_pairs.yaml", "r") as stream:
+            noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
+
+        
+        binary_predict_acc = [1 if prob >= 0.5 else 0 for prob in self.predict_acc]
+        binary_spillage_amount = [1 if amount > 0 else 0 for amount in self.spillage_amount[0]]
+
+
+        '''
+        file_name = f"result/size/result.json"
         try:
             with open(file_name, "r") as json_file:
                 spillage_data = json.load(json_file)
@@ -474,18 +505,21 @@ class Grits():
                              "mass": mass,
                              "ball_amount": ball_amount,
                              "guided_weight": weight,
-                             "spillage_scoop": [],}
+                             "spillage_scoop": [],
+                             "predict_result_list": [],}
 
-
+   
         # Append the current spillage amount to the array
         spillage_scoop = [sum(self.spillage_amount[0]), self.scooped_amount[0][-1]]
         spillage_data["spillage_scoop"].append(spillage_scoop)
+        spillage_data["predict_result_list"].append(binary_predict_acc == binary_spillage_amount)
 
         # Write the updated array back to the JSON file
         with open(file_name, "w") as json_file:
             json.dump(spillage_data, json_file, indent=4)
 
         print(f"Spillage data saved: {spillage_data}")
+        '''
 
     def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
         # reset = 1 means record init spillage in experiment setting 
@@ -537,23 +571,24 @@ class Grits():
         self.pre_spillage[env_index] = int(current_spillage)
         
     
-    def qua_to_rotation_6d(self, ee_traj):
-   
-        ee_traj = torch.tensor(np.array(ee_traj), dtype=torch.float32)
-
-        rotation_6d_traj = torch.zeros((ee_traj.shape[0], 9))  # (H, 9)
+    # def qua_to_rotation_6d(self, ee_traj):
         
-        for i in range(ee_traj.shape[0]):
-            ee = ee_traj[i]
-            quaternion = ee[3:]  # (qw, qx, qy, qz)
+    #     ee_traj = torch.tensor(np.array(ee_traj), dtype=torch.float32)
 
-            # Convert quaternion to rotation matrix
-            ee_rotation_matrix = quaternion_to_matrix(quaternion)
+    #     rotation_6d_traj = torch.zeros((ee_traj.shape[0], 9))  # (H, 9)
 
-            rotation_6d_traj[i, :3] = ee[:3]
-            rotation_6d_traj[i, 3:] = matrix_to_rotation_6d(ee_rotation_matrix[0:3, 0:3])
+        
+    #     for i in range(ee_traj.shape[0]):
+    #         ee = ee_traj[i]
+    #         quaternion = ee[3:]  # (qw, qx, qy, qz)
 
-        return torch.tensor(rotation_6d_traj)  # (H, 9)
+    #         # Convert quaternion to rotation matrix
+    #         ee_rotation_matrix = quaternion_to_matrix(quaternion)
+
+    #         rotation_6d_traj[i, :3] = ee[:3]
+    #         rotation_6d_traj[i, 3:] = matrix_to_rotation_6d(ee_rotation_matrix[0:3, 0:3])
+
+    #     return torch.tensor(rotation_6d_traj)  # (H, 9)
     
 
 

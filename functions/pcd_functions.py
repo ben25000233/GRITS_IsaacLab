@@ -2,6 +2,7 @@ import numpy as np
 import open3d as o3d
 import torch
 from scipy.spatial.transform import Rotation as Rot
+from pytorch3d.transforms import rotation_6d_to_matrix
 
 class Pcd_functions():
     def __init__(self):
@@ -92,6 +93,8 @@ class Pcd_functions():
     
     def align_point_cloud(self, points, target_points=10000):
         num_points = len(points)
+
+        np.random.seed(42)
     
         if num_points >= target_points:
             # Randomly downsample to target_points
@@ -126,6 +129,8 @@ class Pcd_functions():
             points.append(pcd[i][:3])
             if pcd.shape[1] == 4:
                 colors.append(color_map[pcd[i][3]])
+            else :
+                colors.append([0.5, 0.5, 0.5])
 
 
         point_cloud = o3d.geometry.PointCloud()
@@ -142,35 +147,49 @@ class Pcd_functions():
         [0, 0, 0, 1]
         ])
 
-    def from_ee_to_spoon(self, offset, ee_point):
-        # Convert inputs to torch tensors
-        ee_point = torch.tensor(ee_point).to("cpu")
-        offsets = torch.tensor(offset, dtype=torch.float32)  # Shape: [N, 3]
+    def from_ee_to_spoon(self, offsets, ee_points):
+        """
+        offsets: [N, 3]
+        ee_points: [B, 9] or [B, 7]  (batch of ee poses)
+        returns: [B, N, 3] (transformed point clouds)
+        """
+        device = ee_points.device
+        N = offsets.shape[0]
+        B = ee_points.shape[0]
 
-        # Precompute constants
+        # Precompute constant adjustment matrix
         adjust_matrix = torch.tensor(
-            Rot.from_euler("XYZ", (0, 180, 180), degrees=True).as_matrix(),
-            dtype=torch.float32,
+            [[1,  0,  0],
+            [0, -1,  0],
+            [0,  0, -1]],  # Equivalent to Rot.from_euler("XYZ", (0, 180, 180))
+            dtype=torch.float32, device=device
         )
 
-        # Create the end-effector pose matrix (4x4)
-        ee_pose = torch.eye(4, dtype=torch.float32)
-        ee_pose[0:3, 3] = ee_point[0:3]  # Translation
-        rotation = Rot.from_quat([ee_point[4], ee_point[5], ee_point[6], ee_point[3]])
-        rotation_matrix = torch.tensor(rotation.as_matrix(), dtype=torch.float32)
-        ee_pose[0:3, 0:3] = torch.mm(rotation_matrix, adjust_matrix)
+        # Handle rotation
+        if ee_points.shape[1] == 9:
+            rotation_mats = rotation_6d_to_matrix(ee_points[:, 3:9])
+        elif ee_points.shape[1] == 7:
+            quat = ee_points[:, 3:7]
+            quat = F.normalize(quat, dim=-1)
+            qw, qx, qy, qz = quat[:, 0], quat[:, 1], quat[:, 2], quat[:, 3]
+            rotation_mats = torch.stack([
+                1 - 2*(qy**2 + qz**2), 2*(qx*qy - qz*qw), 2*(qx*qz + qy*qw),
+                2*(qx*qy + qz*qw), 1 - 2*(qx**2 + qz**2), 2*(qy*qz - qx*qw),
+                2*(qx*qz - qy*qw), 2*(qy*qz + qx*qw), 1 - 2*(qx**2 + qy**2)
+            ], dim=1).reshape(-1, 3, 3)
 
-        # Create transformation matrices for offsets (Batch)
-        T_spoon_to_center = torch.eye(4, dtype=torch.float32).repeat(len(offsets), 1, 1)  # [N, 4, 4]
-        T_spoon_to_center[:, 0:3, 3] = offsets
+        # Apply adjustment matrix
+        rotation_mats = rotation_mats @ adjust_matrix
 
-        # Batch multiply: [N, 4, 4] @ [4, 4] -> [N, 4, 4]
-        spoon_poses = torch.matmul(ee_pose.unsqueeze(0), T_spoon_to_center)
+        # Compute transformed points
+        offsets = offsets.to(device)
+        translations = ee_points[:, 0:3]  # [B, 3]
 
-        # Extract positions: [N, 3]
-        new_pcd = spoon_poses[:, 0:3, 3]
+        # Transform all offsets in one go
+        rotated_offsets = torch.matmul(rotation_mats.unsqueeze(1), offsets.unsqueeze(-1)).squeeze(-1)  # [B, N, 3]
+        new_pcds = rotated_offsets + translations.unsqueeze(1)  # [B, N, 3]
 
-        return new_pcd.numpy()
+        return new_pcds
     
     def get_init_spoon_offset(self, init_pose, init_pcd):
         init_pose = np.array(init_pose)
@@ -181,4 +200,77 @@ class Pcd_functions():
             offset_list.append(offset)
         offset_list = np.array(offset_list)
         np.save("real_spoon_pcd_offset.npy", offset_list)
+
+    def show_arrow(self, flow_pcd_list):
+        """
+        Visualize all flow point clouds at once with arrows indicating flow vectors.
+        :param flow_pcd_list: List of Nx6 arrays, where each array contains:
+                            - First 3 dimensions: point positions
+                            - Last 3 dimensions: flow vectors.
+        """
+
+        # Initialize combined points and arrows
+        combined_points = []
+        combined_lines = []
+        combined_colors = []
+        arrow_points = []
+        line_index = 0
+
+        for flow_pcd in flow_pcd_list:
+            # Ensure flow_pcd has the correct shape
+            assert flow_pcd.shape[1] == 6, "Each flow_pcd must have 6 dimensions (3 for position, 3 for flow vector)."
+
+            # Extract positions and flow vectors
+            positions = flow_pcd[:, :3]
+            flow_vectors = flow_pcd[:, 3:]
+
+            # Add points and arrows for the current flow_pcd
+            for i in range(len(positions)):
+                start_point = positions[i]
+                end_point = positions[i] + flow_vectors[i]  # Add flow vector to position
+                arrow_points.append(start_point)
+                arrow_points.append(end_point)
+                combined_lines.append([line_index, line_index + 1])  # Line between start and end
+                combined_colors.append([0, 1, 0])  # Green for arrows
+                line_index += 2
+
+            # Add the positions to the combined points
+            combined_points.extend(positions)
+
+        # Create Open3D point cloud for all positions
+        o3d_pcd = o3d.geometry.PointCloud()
+        o3d_pcd.points = o3d.utility.Vector3dVector(np.array(combined_points))
+        o3d_pcd.paint_uniform_color([1, 0, 0])  # Red for points
+
+        # Create LineSet for all arrows
+        arrow_points = np.array(arrow_points)
+        line_set = o3d.geometry.LineSet()
+        line_set.points = o3d.utility.Vector3dVector(arrow_points)
+        line_set.lines = o3d.utility.Vector2iVector(np.array(combined_lines))
+        line_set.colors = o3d.utility.Vector3dVector(np.array(combined_colors))
+
+        # Visualize all point clouds and arrows in one window
+        o3d.visualization.draw_geometries([o3d_pcd, line_set])
+    
+
+    def eepose_to_flowPcd(self, pcd_offset, eepose_list):
+        if eepose_list.ndim == 2:
+            eepose_list = eepose_list.unsqueeze(0)
+        
+        B, T, _ = eepose_list.shape
+
+        # Compute all transformed spoon points
+        spoon_pcds = self.from_ee_to_spoon(torch.tensor(pcd_offset, dtype=torch.float32, device=eepose_list.device),
+                                                eepose_list.reshape(-1, eepose_list.shape[-1]))
+        spoon_pcds = spoon_pcds.reshape(B, T, *spoon_pcds.shape[1:])  # [B, T, N, 3]
+
+        # Compute flow between consecutive steps
+        start_pcd = spoon_pcds[:, :-1]  # [B, T-1, N, 3]
+        end_pcd = spoon_pcds[:, 1:]     # [B, T-1, N, 3]
+        flow = end_pcd - start_pcd
+        flow_pcds = torch.cat((start_pcd, flow), dim=-1)  # [B, T-1, N, 6]
+
+        return flow_pcds.float()
+
+
         

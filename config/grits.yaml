@@ -67,7 +67,7 @@ testing:
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 0 # 3,5,7
+    weight: 3 # 3,5,7
   quatity_guided:
     mode: "AE"
     weight: 1.0

@@ -8,8 +8,7 @@ import torchvision.models as models
 import torch.nn.functional as F
 
 
-    
-class obs_pcd_Encoder(nn.Module):
+class PointNet_Encoder(nn.Module):
     def __init__(self, device,initailize_weights=True):
         super().__init__()
      
@@ -36,67 +35,6 @@ class obs_pcd_Encoder(nn.Module):
 
         return output_pcd
 
-'''
-    def encode(self, pcd):
-        # pcd expected: (B, N, C). If (B,S,N,C), pick last S or fuse before here.
-        if pcd.ndim == 4:
-            pcd = pcd.squeeze(0)
-  
-
-        # Backbone forward to get (B, 512, npoint)
-        xyz, features = self.backbone._break_up_pc(pcd)  # reuse helper
-
-        for m in self.backbone.SA_modules:
-            xyz, features = m(xyz, features)
-
-
-        # Global pool across points → (B, 512)
-        feat = self.pool(features)  # (B, 512)
-        emb = self.proj(feat.squeeze(-1))
-
-        # ----------one-hot label------------------
-
-        # if pcd.dim() == 4:        # (B,S,N,4) -> flatten over S for PN++ pass
-        #     B, S, N, C = pcd.shape
-        #     pcd_flat = pcd.reshape(B * S, N, C)
-        # elif pcd.dim() == 3:      # (B,N,4)
-        #     B, N, C = pcd.shape
-        #     S = 1
-        #     pcd_flat = pcd
-        # else:
-        #     raise ValueError(f"Unexpected pcd shape {pcd.shape}; expected (B,N,4) or (B,S,N,4)")
-
-        # raw_seg = pcd_flat[..., 3]                                 # (B*S, N)
-        # raw_seg = raw_seg.nan_to_num(0).floor().to(torch.long)
-
-        # # build LUT
-        # lbls = [1, 2, 4]                             # [1,2,4]
-        # lut = {int(v): i for i, v in enumerate(lbls)}              # 1->0, 2->1, 4->2
-        # Cseg = len(lut)
-        # fallback_idx = lut[int(4)] if 4 in lut else 0
-
-        # # remap (handles unknowns)
-        # remapped = torch.full_like(raw_seg, fill_value=fallback_idx)
-        # for raw, idx in lut.items():
-        #     remapped[raw_seg == raw] = idx
-
-        # onehot = F.one_hot(remapped, num_classes=Cseg).to(torch.float32)  # (B*S, N, 3)
-
-        # # ---- construct PN++ input: xyz + one-hot ----
-        # pc_in = torch.cat([pcd_flat[..., :3].to(torch.float32), onehot], dim=-1)  # (B*S, N, 3+3)
-
-        # # ---- backbone forward (use the correct tensor!) ----
-        # xyz, features = self.backbone._break_up_pc(pc_in)  # xyz: (B*S,N,3), features: (B*S,3,N)
-        # for m in self.backbone.SA_modules:
-        #     xyz, features = m(xyz, features)              # features: (B*S, 512, npoint)
-
-        # # ---- global pool & project ----
-        # feat = self.pool(features).squeeze(-1)            # (B*S, 512)
-        # emb  = self.proj(feat)
-    
-        return emb
-
-'''
     
 class flow_pcd_Encoder(nn.Module):
     def __init__(self, device, initailize_weights=True):
@@ -236,8 +174,8 @@ class depth_Encoder(nn.Module):
         return depth_out
     
 
-    
-class PointNetEncoderXYZRGB(nn.Module):
+# DP3 encoder
+class DP3_Encoder(nn.Module):
     """Encoder for Pointcloud
     """
 
@@ -286,36 +224,39 @@ class PointNetEncoderXYZRGB(nn.Module):
          
     def encode(self, pcd):
 
-        # ----------one-hot label------------------
+        if pcd.dim() != 6 :
+            # ----------one-hot label------------------
 
-        if pcd.dim() == 4:        # (B,S,N,4) -> flatten over S for PN++ pass
-            B, S, N, C = pcd.shape
-            pcd_flat = pcd.reshape(B * S, N, C)
-        elif pcd.dim() == 3:      # (B,N,4)
-            B, N, C = pcd.shape
-            S = 1
-            pcd_flat = pcd
+            if pcd.dim() == 4:        # (B,S,N,4) -> flatten over S for PN++ pass
+                B, S, N, C = pcd.shape
+                pcd_flat = pcd.reshape(B * S, N, C)
+            elif pcd.dim() == 3:      # (B,N,4)
+                B, N, C = pcd.shape
+                S = 1
+                pcd_flat = pcd
+            else:
+                raise ValueError(f"Unexpected pcd shape {pcd.shape}; expected (B,N,4) or (B,S,N,4)")
+
+            raw_seg = pcd_flat[..., 3]                                 # (B*S, N)
+            raw_seg = raw_seg.nan_to_num(0).floor().to(torch.long)
+
+            # build LUT
+            lbls = [1, 2, 4]                             # [1,2,4]
+            lut = {int(v): i for i, v in enumerate(lbls)}              # 1->0, 2->1, 4->2
+            Cseg = len(lut)
+            fallback_idx = lut[int(4)] if 4 in lut else 0
+
+            # remap (handles unknowns)
+            remapped = torch.full_like(raw_seg, fill_value=fallback_idx)
+            for raw, idx in lut.items():
+                remapped[raw_seg == raw] = idx
+
+            onehot = F.one_hot(remapped, num_classes=Cseg).to(torch.float32)  # (B*S, N, 3)
+
+            # ---- construct PN++ input: xyz + one-hot ----
+            pc_in = torch.cat([pcd_flat[..., :3].to(torch.float32), onehot], dim=-1)  # (B*S, N, 3+3)
         else:
-            raise ValueError(f"Unexpected pcd shape {pcd.shape}; expected (B,N,4) or (B,S,N,4)")
-
-        raw_seg = pcd_flat[..., 3]                                 # (B*S, N)
-        raw_seg = raw_seg.nan_to_num(0).floor().to(torch.long)
-
-        # build LUT
-        lbls = [1, 2, 4]                             # [1,2,4]
-        lut = {int(v): i for i, v in enumerate(lbls)}              # 1->0, 2->1, 4->2
-        Cseg = len(lut)
-        fallback_idx = lut[int(4)] if 4 in lut else 0
-
-        # remap (handles unknowns)
-        remapped = torch.full_like(raw_seg, fill_value=fallback_idx)
-        for raw, idx in lut.items():
-            remapped[raw_seg == raw] = idx
-
-        onehot = F.one_hot(remapped, num_classes=Cseg).to(torch.float32)  # (B*S, N, 3)
-
-        # ---- construct PN++ input: xyz + one-hot ----
-        pc_in = torch.cat([pcd_flat[..., :3].to(torch.float32), onehot], dim=-1)  # (B*S, N, 3+3)
+            pc_in = pcd.to(torch.float32)
 
         x = self.mlp(pc_in)
         x = torch.max(x, 1)[0]

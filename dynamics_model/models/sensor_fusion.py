@@ -6,34 +6,13 @@ import open3d as o3d
 from .base_models.encoders import (
     ee_pose_Encoder,
     property_Encoder,
-    obs_pcd_Encoder,
+    PointNet_Encoder,
     flow_pcd_Encoder,
     depth_Encoder,
-    PointNetEncoderXYZRGB
+    DP3_Encoder,
 )
 
-def check_pcd_color(pcd):
-
-    color_map = {
-        0: [1, 0, 0],    # Red
-        1: [0, 1, 0],    # Green
-        2: [0, 0, 1],    # Blue
-        3: [1, 1, 0],    # Yellow
-        4: [1, 0, 1]     # Magenta
-    }
-    points = []
-    colors = []
-   
-    
-    for i in range(pcd.shape[0]):
-        points.append(pcd[i][:3].cpu())
-        colors.append(color_map[pcd[i][3].cpu().item()])
-
-    point_cloud = o3d.geometry.PointCloud()
-    point_cloud.points = o3d.utility.Vector3dVector(points)
-    point_cloud.colors = o3d.utility.Vector3dVector(colors)
-
-    o3d.visualization.draw_geometries([point_cloud])
+from functions.pcd_functions import Pcd_functions
 
 class SensorFusion(nn.Module):
     """
@@ -61,60 +40,19 @@ class SensorFusion(nn.Module):
         # self.feature_num = 3
 
         # Modality Encoders
-        # self.obs_pcd_encoder = obs_pcd_Encoder(device=device)
-        self.obs_pcd_encoder = PointNetEncoderXYZRGB(device=device)
-        # self.flow_pcd_encoder = flow_pcd_Encoder(device=device)
-        # self.depth_encoder = depth_Encoder()
-        self.eepose_encoder = ee_pose_Encoder()
+        # self.obs_pcd_encoder = PointNetEncoder(device=device)
+        self.obs_pcd_encoder = DP3_Encoder(device=device)
+        self.flow_pcd_Encoder = DP3_Encoder(device=device)
+
+        # self.eepose_encoder = ee_pose_Encoder()
+
+        self.pcd_offset = np.load("./ref_pcd/small_tool_offset.npy")
+        self.pcd_functions = Pcd_functions()
 
         # self.pcd_info = np.load("pcd_nor_info.npy", allow_pickle=True)
-    
 
-
-    # def ee_normalize(self, data):
-
-    #     input_range = torch.load('input_range_real.pt', weights_only=True)
-
-    #     self.input_max = input_range[0,:]
-    #     self.input_min = input_range[1,:]
-    #     # self.input_mean = input_range[2,:]
-
-
-    #     ranges = self.input_max - self.input_min
-    #     nor_traj = []
-
-    #     if data.ndim == 2 :
-    #         data = data.unsqueeze(0)
-
-    #     for batch in range(data.shape[0]):
-    #         mono_data = data[batch]
-            
-    #         data_normalize = torch.zeros_like(mono_data)
-
-    #         for i in range(3):
-    #             '''
-    #             if ranges[i] < 1e-4:
-    #                 # If variance is small, shift to zero-mean without scaling
-    #                 data_normalize[:, i] = mono_data[:, i] - self.input_mean[i]
-    #             else:
-    #                 # Scale to [-1, 1] range
-    #                 data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]   
-    #             '''
-    #             data_normalize[:, i] = -1 + 2 * (mono_data[:, i] - self.input_min[i]) / ranges[i]
-            
-    #         data_normalize[:, 3:] = mono_data[:, 3:]
-    #         nor_traj.append(data_normalize)      
-
-    #     nor_traj = torch.stack(nor_traj)
-    #     a,b,c = nor_traj.shape
-    
-    #     output = nor_traj.reshape(a, b*c)
-   
-
-    #     return output
-
-    # def forward_encoder(self, ee_pose, ee_pcd, hand_depth, front_depth, hand_pcd, front_pcd, hand_seg, front_seg):
-    def forward_encoder(self, ee_pose, front_pcd, ):
+    def forward_encoder(self, ee_pose, front_pcd):
+       
 
         if front_pcd.ndim == 3 :
             image_num, _, _ = front_pcd.shape
@@ -122,156 +60,40 @@ class SensorFusion(nn.Module):
         else : 
             batch_size, image_num, _, _ = front_pcd.shape
   
-        combine_depth = []
-        combine_pcd = []
-        combine_seg = []
-        ee_pcd_list = []
-        flow_pcd_list = []
+        obs_pcd = []
+        flow_pcd = []
    
-        # Get encoded outputs
-        # modify
-        # nor_pose = self.ee_normalize(ee_pose)
-        # nor_pose = ee_pose
-        pose_out = self.eepose_encoder(ee_pose.reshape(ee_pose.shape))             # shpae : torch.Size([batch_size , 7, 128])
-   
-        '''
-        future_steps = ee_pose.shape[1]
-        for i in range(future_steps):
-            
-            check_pcd_color(ee_pcd[0, i, :, :])
-            ee_pcd_out = self.obs_pcd_encoder.encode(ee_pcd[:, i, :, :])
-            ee_pcd_list.append(ee_pcd_out)
-        all_ee_pcd = torch.cat(ee_pcd_list, dim=1)
-        '''
+        # pose_out = self.eepose_encoder(ee_pose)             # shpae : torch.Size([batch_size , 7, 128])
         
-       
-        
-        # ee_pcd_out_1 = self.obs_pcd_encoder.encode(ee_pcd[:, 0, :, :])
-        # ee_pcd_out_2 = self.obs_pcd_encoder.encode(ee_pcd[:, -1, :, :])
-        # all_ee_pcd = torch.cat([ee_pcd_out_1, ee_pcd_out_2], dim=1)
-        
-
-        # flow_pcd_out = self.flow_pcd_encoder.encode(flow_pcd.type(torch.float32))
-        
-
-        # hand_depth_out = self.depth_encoder(hand_depth)
-        # front_depth_out = self.depth_encoder(front_depth)   # shpae : torch.Size([batch_size , 4, 128])
-        # front_pcd = self.pcd_encoder.encode(front_pcd)
-        # hand_pcd = self.pcd_encoder.encode(hand_pcd)
 
         for i in range(image_num):
-            
-            # hand_pcd_out = self.pcd_encoder.encode(hand_pcd[:, i, :, :])     # shpae : torch.Size([batch_size , 256)
-            
-            # front_pcd_out = self.obs_pcd_encoder.encode(front_pcd[:, i, :, :])   # shpae : torch.Size([batch_size , 256]
-            
-            # sample_pcd = front_pcd[0,i, :, :]
-            # check_pcd_color(sample_pcd)
-            # sample_pcd = sample_pcd[sample_pcd[:, -1] == 2]
-            # print(sample_pcd.mean(dim=0))
-            # exit()
-            
             if front_pcd.ndim == 3:
                 front_pcd = front_pcd.unsqueeze(0)
-       
-            front_pcd_out = self.obs_pcd_encoder.encode(front_pcd[:, i, :, :].unsqueeze(0))   # shpae : torch.Size([batch_size , 256])
-            
-            # combine_pcd.append(hand_pcd_out)
-            combine_pcd.append(front_pcd_out)
-      
+            front_pcd_out = self.obs_pcd_encoder.encode(front_pcd[:, i, :, :].unsqueeze(0).float())   # shpae : torch.Size([batch_size , 256])
+            obs_pcd.append(front_pcd_out)
+        all_obs_pcd = torch.cat(obs_pcd, dim=1)
+        a, b = all_obs_pcd.shape
+        all_obs_pcd = all_obs_pcd.reshape(batch_size, int(a*b/batch_size))
+
+
+        flow_pcds = self.pcd_functions.eepose_to_flowPcd(self.pcd_offset, ee_pose)
+        for i in range(flow_pcds.shape[1]):
+            flow_pcd_out = self.flow_pcd_Encoder.encode(flow_pcds[:, i, :, :].unsqueeze(0).float().to(self.device))   # shpae : torch.Size([batch_size , 256])
+            flow_pcd.append(flow_pcd_out)
+        all_flow_pcd = torch.cat(flow_pcd, dim=1)
+        a, b = all_flow_pcd.shape
+        all_flow_pcd = all_flow_pcd.reshape(batch_size, int(a*b/batch_size))
         
-        all_pcd = torch.cat(combine_pcd, dim=1)
+        embeddings = torch.cat((all_obs_pcd, all_flow_pcd), 1).to(torch.float32)
 
-  
-        a, b = all_pcd.shape
-        all_pcd = all_pcd.reshape(batch_size, int(a*b/batch_size))
+        # embeddings = torch.cat((all_obs_pcd, pose_out), 1).to(torch.float32)
 
-        embeddings = torch.cat((pose_out, all_pcd), 1).to(torch.float32)
-        # embeddings = torch.cat((all_ee_pcd, all_pcd), 1).to(torch.float32)
-        # embeddings = torch.cat((all_pcd, flow_pcd_out), 1).to(torch.float32)
+
 
         return embeddings
     
-    def check_pcd_color(self, pcd):
-
-        color_map = {
-            0: [1, 0, 0],    # Red
-            1: [0, 1, 0],    # Green
-            2: [0, 0, 1],    # Blue
-            3: [1, 1, 0],    # Yellow
-            4: [1, 0, 1]     # Magenta
-        }
-        points = []
-        colors = []
-        
-        for i in range(pcd.shape[0]):
-            points.append(pcd[i][:3])
-            colors.append(color_map[int(pcd[i][3].item())])
-
-        point_cloud = o3d.geometry.PointCloud()
-        point_cloud.points = o3d.utility.Vector3dVector(points)
-        point_cloud.colors = o3d.utility.Vector3dVector(colors)
-
-        o3d.visualization.draw_geometries([point_cloud])
 
 
-
-# class Dynamics_model(SensorFusion):
-#     """
-#     SensorFusion Network Architecture without LSTM
-#     """
-
-#     def __init__(
-#         self, device, z_dim=128, action_dim=9, encoder=False, deterministic=False, training_type="spillage"
-#     ):
-#         super().__init__(device, z_dim, action_dim, encoder, deterministic, training_type)
-#         self.multi_encoder = SensorFusion(device=device)
-
-#         # Fully connected layers
-#         self.fc1 = nn.Linear(1152, 1024)  # Use z_dim directly as input size
-#         self.relu1 = nn.ReLU()
-#         self.dropout1 = nn.Dropout(p=0.1)
-
-#         self.fc2 = nn.Linear(1024, 512)  # Use z_dim directly as input size
-#         self.relu2 = nn.ReLU()
-#         self.dropout2 = nn.Dropout(p=0.1)
-
-#         self.fc3 = nn.Linear(512, 256)  # Use z_dim directly as input size
-#         self.relu3 = nn.ReLU()
-#         self.dropout3 = nn.Dropout(p=0.1)
-
-#         self.fc4 = nn.Linear(256, 128)
-#         self.relu4 = nn.ReLU()
-#         self.dropout4 = nn.Dropout(p=0.1)
-
-#         self.fc5 = nn.Linear(128, 2)  # Output layer for 3 predictions
-
-#     def forward(self, ee_pose, tool_with_ball_pcd, ):
-     
-#         # Get latent representation from multi-encoder
-#         latent_z = self.multi_encoder.forward_encoder(ee_pose, tool_with_ball_pcd,)
-    
-#         # Fully connected layers
-#         x = self.fc1(latent_z)
-       
-#         x = self.relu1(x)
-#         x = self.dropout1(x)
-
-#         x = self.fc2(x)
-#         x = self.relu2(x)
-#         x = self.dropout2(x)
-
-#         x = self.fc3(x)
-#         x = self.relu3(x)
-#         x = self.dropout3(x)
-
-#         x = self.fc4(x)
-#         x = self.relu4(x)
-#         x = self.dropout4(x)
-
-#         x = self.fc5(x)
-
-#         return x
 
 class Dynamics_model(SensorFusion):
     """
@@ -284,29 +106,37 @@ class Dynamics_model(SensorFusion):
         super().__init__(device, z_dim, action_dim, encoder, deterministic, training_type)
         self.multi_encoder = SensorFusion(device=device)
 
-        # Fully connected layers
-        self.fc1 = nn.Linear(3456, 256)  # Use z_dim directly as input size
-        self.relu1 = nn.ReLU()
+        # Fully connected layers with BatchNorm
+        self.fc1 = nn.Linear(14336, 256)
+        self.bn1 = nn.BatchNorm1d(256)
+        self.relu1 = nn.LeakyReLU(negative_slope=0.01)
         self.dropout1 = nn.Dropout(p=0.1)
 
         self.fc2 = nn.Linear(256, 32)
-        self.relu2 = nn.ReLU()
+        self.bn2 = nn.BatchNorm1d(32)
+        self.relu2 = nn.LeakyReLU(negative_slope=0.01)
         self.dropout2 = nn.Dropout(p=0.1)
 
-        self.fc3 = nn.Linear(32, 2)  # Output layer for 3 predictions
+        self.fc3 = nn.Linear(32, 2)  # Output layer for predictions
 
-    def forward(self, ee_pose, tool_with_ball_pcd, ):
-     
+        # self.projection = nn.Linear(3456, 256)
+
+    def forward(self, ee_pose, tool_with_ball_pcd):
         # Get latent representation from multi-encoder
-        latent_z = self.multi_encoder.forward_encoder(ee_pose, tool_with_ball_pcd,)
-    
-        # Fully connected layers
+        latent_z = self.multi_encoder.forward_encoder(ee_pose, tool_with_ball_pcd)
+
+        # Project latent_z to match the dimensions of x
+        # projected_latent_z = self.projection(latent_z)
+
+        # Fully connected layers with BatchNorm and residual connection
         x = self.fc1(latent_z)
-       
+        x = self.bn1(x)
         x = self.relu1(x)
         x = self.dropout1(x)
+        # x = x + projected_latent_z  # Add residual connection
 
         x = self.fc2(x)
+        x = self.bn2(x)
         x = self.relu2(x)
         x = self.dropout2(x)
 

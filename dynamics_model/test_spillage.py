@@ -6,7 +6,6 @@ import torch
 
 from .models.sensor_fusion import Dynamics_model
 
-
 class spillage_predictor:
     def __init__(self):
 
@@ -26,20 +25,19 @@ class spillage_predictor:
         ).to(self.device)
 
         # model_path = "./dynamics_model/spillage_ckpt.pt"
-        model_path = "/media/hcis-s22/data/isaaclab_spillage_dataset/small_mix_spillage_dataset/spillage_ckpt/epoch3.pt"
+        model_path = "/media/hcis-s22/data/isaaclab_spillage_dataset/small_mix_spillage_dataset/spillage_ckpt_eepose/epoch100.pt"
         print("Loading model from {}...".format(model_path))
         ckpt = torch.load(model_path)
         self.model.load_state_dict(ckpt)
 
 
     def validate(self, eepose, tool_with_ball_pcd):
-
-        # print(eepose.requires_grad)  #True 
-        # print(tool_with_ball_pcd.requires_grad)   #True
+       
         self.model.eval()
         pred_spillage = self.model(eepose, tool_with_ball_pcd)
         
         return pred_spillage
+    
     
 
     

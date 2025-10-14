@@ -20,6 +20,8 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
+
 class predict_spillage:
     def __init__(self, configs):
 
@@ -180,24 +182,28 @@ class predict_spillage:
 
         all_preds = []
         all_labels = []
+        all_shapes = []
 
 
 
         with torch.no_grad():
             for i_iter, sample_batched in enumerate(tqdm(val_loader)):
+                
                 loss, acc, pred, label = self.loss_calc(sample_batched)
                 _, preds = torch.max(pred, 1)
                 _, labels = torch.max(label, 1)
+                indexed_shapes = [sample_batched['shape'][i] for i in self.combined_indices.cpu().numpy()]
 
 
                 all_preds.extend(preds.cpu().numpy())
                 all_labels.extend(label.cpu().numpy())
+                all_shapes.extend(indexed_shapes)
                 
                 total_loss += loss.item()
                 total_acc += acc
 
         if (epoch+1) % 10 == 0 :
-            self.show_confusion(all_labels, all_preds, epoch)
+            self.show_confusion(all_labels, all_preds, epoch, all_shapes)
         
         val_loss = total_loss / len(val_loader)
         val_acc = total_acc / len(val_loader)
@@ -209,21 +215,74 @@ class predict_spillage:
         print(f"val_loss: {val_loss} val_accuracy: {val_acc}")
         return val_loss
     
-    def show_confusion(self, label, prediction, epoch):
-        
+    def show_confusion(self, label, prediction, epoch, all_shapes):
+        epoch_folder = f"/workspace/train_dataset/confusion/epoch_{epoch}"
+        if not os.path.exists(epoch_folder):
+            os.makedirs(epoch_folder)
+
+        # Convert labels and predictions to class indices
         class_labels = np.argmax(label, axis=1)
-        
-        cm = confusion_matrix(class_labels, prediction)
-    
-        # Plot confusion matrix using seaborn
-        plt.figure(figsize=(6, 4))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=[0, 1, 2], yticklabels=[0, 1, 2])
+        class_predictions = np.array(prediction)
+
+        # Unique shapes in the dataset
+        unique_shapes = set(all_shapes)
+
+        # Initialize an empty confusion matrix for merging
+        num_classes = len(np.unique(class_labels))  # Number of classes
+        merged_confusion_matrix = np.zeros((num_classes, num_classes), dtype=int)
+
+        # Calculate confusion matrix for each shape
+        for shape in unique_shapes:
+            # Get indices for the current shape
+            shape_indices = [i for i, s in enumerate(all_shapes) if s == shape]
+
+            # Filter labels and predictions for the current shape
+            shape_labels = class_labels[shape_indices]
+            shape_predictions = class_predictions[shape_indices]
+
+            # Compute confusion matrix for the current shape
+            cm = confusion_matrix(shape_labels, shape_predictions)
+
+            # Accumulate the confusion matrix into the merged matrix
+            merged_confusion_matrix += cm
+
+            # Print and save the confusion matrix for the current shape
+            print(f"\nConfusion Matrix for Shape: {shape}")
+            print(cm)
+
+            # Normalize the confusion matrix for the current shape
+            cm_percentage = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
+
+            # Plot the confusion matrix for the current shape
+            plt.figure(figsize=(8, 6))
+            sns.heatmap(cm_percentage, annot=True, fmt='.2f', cmap='Blues',
+                        xticklabels=['No Spillage', 'Spillage'],  # Update labels as needed
+                        yticklabels=['No Spillage', 'Spillage'])
+            plt.xlabel('Predicted Labels')
+            plt.ylabel('True Labels')
+            plt.title(f'Confusion Matrix for Shape: {shape}')
+            save_path = f"{epoch_folder}/confusion_matrix_{shape}.png"
+            plt.savefig(save_path, format='png')
+            plt.close()
+
+        # Print and save the merged confusion matrix
+        print("\nMerged Confusion Matrix:")
+        print(merged_confusion_matrix)
+
+        # Normalize the merged confusion matrix to percentages
+        merged_cm_percentage = merged_confusion_matrix.astype('float') / merged_confusion_matrix.sum(axis=1)[:, np.newaxis] * 100
+
+        # Plot the merged confusion matrix
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(merged_cm_percentage, annot=True, fmt='.2f', cmap='Blues',
+                    xticklabels=['No Spillage', 'Spillage'],  # Update labels as needed
+                    yticklabels=['No Spillage', 'Spillage'])
         plt.xlabel('Predicted Labels')
         plt.ylabel('True Labels')
-        plt.title('Confusion Matrix')
-        save_path = f"/workspace/train_dataset/confusion/epoch_{epoch}.png"
+        plt.title('Merged Confusion Matrix (Percentage)')
+        save_path = f"{epoch_folder}/merged_confusion_matrix_percentage.png"
         plt.savefig(save_path, format='png')
-        # plt.show()
+        plt.close()
     
     def load_model(self, path):
         print("Loading model from {}...".format(path))
@@ -247,7 +306,7 @@ class predict_spillage:
         # tool_with_ball_pcd = sampled_batched["tool_with_ball_pcd"].to(self.device)
         # flow_pcd = sampled_batched["pcd_with_flow"].to(self.device)
         tool_ball_bowl_pcd = sampled_batched["tool_ball_bowl_pcd"].to(self.device)
-
+        self.shapes = sampled_batched["shape"]
 
         
         #binary 
@@ -279,7 +338,7 @@ class predict_spillage:
             level_2_indices = level_2_indices[torch.randperm(len(level_2_indices))[:collect_num]]
             
         # combined_indices = torch.cat((level_1_indices, level_2_indices, level_3_indices))
-        combined_indices = torch.cat((level_1_indices, level_2_indices))
+        self.combined_indices = torch.cat((level_1_indices, level_2_indices))
         '''
 
         
@@ -310,15 +369,15 @@ class predict_spillage:
 
 
     
-        eepose = eepose[combined_indices]
+        eepose = eepose[self.combined_indices]
 
-        spillage = spillage[combined_indices]
+        spillage = spillage[self.combined_indices]
         # tool_with_ball_pcd = tool_with_ball_pcd[combined_indices]
         # ee_pcd = ee_pcd[combined_indices]
         # flow_pcd = flow_pcd[combined_indices]
-        tool_ball_bowl_pcd = tool_ball_bowl_pcd[combined_indices]
+        tool_ball_bowl_pcd = tool_ball_bowl_pcd[self.combined_indices]
         
-        pred_spillage = self.model(
+        pred_spillage = self.model.forward(
                 eepose, tool_ball_bowl_pcd,
             )
 
@@ -406,7 +465,7 @@ class predict_spillage:
             training_type=self.configs["training_type"],
             action_dim=self.configs["action_dim"],
             single_env_steps = self.configs["collect_time"] * self.configs["n_time_steps"],
-            type = "training",
+            dataset_type = "training",
         )
 
 
@@ -416,7 +475,7 @@ class predict_spillage:
             training_type=self.configs["training_type"],
             action_dim=self.configs["action_dim"],
             single_env_steps = self.configs["collect_time"] * self.configs["n_time_steps"],
-            type = "validation",
+            dataset_type = "validation",
         )
 
         print("Dataset finished")
