@@ -42,11 +42,11 @@ class SensorFusion(nn.Module):
         # Modality Encoders
         # self.obs_pcd_encoder = PointNetEncoder(device=device)
         self.obs_pcd_encoder = DP3_Encoder(device=device)
-        self.flow_pcd_Encoder = DP3_Encoder(device=device)
+        # self.flow_pcd_Encoder = DP3_Encoder(device=device)
 
-        # self.eepose_encoder = ee_pose_Encoder()
+        self.eepose_encoder = ee_pose_Encoder()
 
-        self.pcd_offset = np.load("./ref_pcd/small_tool_offset.npy")
+        self.pcd_offset = np.load("./ref_pcd/small_real_tool_offset.npy")
         self.pcd_functions = Pcd_functions()
 
         # self.pcd_info = np.load("pcd_nor_info.npy", allow_pickle=True)
@@ -63,7 +63,7 @@ class SensorFusion(nn.Module):
         obs_pcd = []
         flow_pcd = []
    
-        # pose_out = self.eepose_encoder(ee_pose)             # shpae : torch.Size([batch_size , 7, 128])
+        
         
 
         for i in range(image_num):
@@ -76,17 +76,18 @@ class SensorFusion(nn.Module):
         all_obs_pcd = all_obs_pcd.reshape(batch_size, int(a*b/batch_size))
 
 
-        flow_pcds = self.pcd_functions.eepose_to_flowPcd(self.pcd_offset, ee_pose)
-        for i in range(flow_pcds.shape[1]):
-            flow_pcd_out = self.flow_pcd_Encoder.encode(flow_pcds[:, i, :, :].unsqueeze(0).float().to(self.device))   # shpae : torch.Size([batch_size , 256])
-            flow_pcd.append(flow_pcd_out)
-        all_flow_pcd = torch.cat(flow_pcd, dim=1)
-        a, b = all_flow_pcd.shape
-        all_flow_pcd = all_flow_pcd.reshape(batch_size, int(a*b/batch_size))
+        # flow_pcds = self.pcd_functions.eepose_to_flowPcd(self.pcd_offset, ee_pose)
+        # for i in range(flow_pcds.shape[1]):
+        #     flow_pcd_out = self.flow_pcd_Encoder.encode(flow_pcds[:, i, :, :].unsqueeze(0).float().to(self.device))   # shpae : torch.Size([batch_size , 256])
+        #     flow_pcd.append(flow_pcd_out)
+        # all_flow_pcd = torch.cat(flow_pcd, dim=1)
+        # a, b = all_flow_pcd.shape
+        # all_flow_pcd = all_flow_pcd.reshape(batch_size, int(a*b/batch_size))
         
-        embeddings = torch.cat((all_obs_pcd, all_flow_pcd), 1).to(torch.float32)
+        # embeddings = torch.cat((all_obs_pcd, all_flow_pcd), 1).to(torch.float32)
 
-        # embeddings = torch.cat((all_obs_pcd, pose_out), 1).to(torch.float32)
+        pose_out = self.eepose_encoder(ee_pose)             # shpae : torch.Size([batch_size , 7, 128])
+        embeddings = torch.cat((all_obs_pcd, pose_out), 1).to(torch.float32)
 
 
 
@@ -107,7 +108,7 @@ class Dynamics_model(SensorFusion):
         self.multi_encoder = SensorFusion(device=device)
 
         # Fully connected layers with BatchNorm
-        self.fc1 = nn.Linear(14336, 256)
+        self.fc1 = nn.Linear(3456, 256)
         self.bn1 = nn.BatchNorm1d(256)
         self.relu1 = nn.LeakyReLU(negative_slope=0.01)
         self.dropout1 = nn.Dropout(p=0.1)

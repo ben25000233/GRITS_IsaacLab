@@ -42,7 +42,7 @@ class Env_functions():
 
         self.noise_index = noise_cfg["index"]
   
-        self.noise = noise_cfg["noises"][20]
+        self.noise = noise_cfg["noises"][0]
 
         if self.noise_index == 49 :
             noise_cfg["index"] = 0
@@ -165,10 +165,14 @@ class Env_functions():
         n = random.randint(3, 5)
 
 
-        # ball_amount = 1
-
-        # mass = 0.003
-        # friction = 0.5
+        ball_amount = 3
+        r_radius = 0.005 + self.noise_index*0.0001
+        l_radius = r_radius
+        # ball_amount = int((0.01/r_radius)**3 * 5)
+   
+        n = 5
+        mass = 0.01
+        friction = 0.5
 
         # r_radius = 0.0025 + (0.01 - 0.0025)*(self.noise_index+1)/50
         # sphere
@@ -257,7 +261,7 @@ class Env_functions():
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
         obj_cfg = random.choice(shapes)
-        obj_cfg = cfg_sphere
+        obj_cfg = cfg_cube
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
 
 
@@ -398,16 +402,21 @@ class Env_functions():
             start_idx = layer * n * n
             end_idx = start_idx + n * n
 
+            '''
             noise_x = random.uniform(-0.03, 0.03)
             noise_y = random.uniform(-0.03, 0.03)
+
+            noise_x = layer * 0.005
+            noise_y = layer * 0.005
 
             # Set x, y, and z coordinates for this layer
             env_origins[start_idx:end_idx, 0] = xx + 0.58 + noise_x
             env_origins[start_idx:end_idx, 1] = yy - 0.12 + noise_y
+            '''
 
             # Set x, y, and z coordinates for this layer
-            # env_origins[start_idx:end_idx, 0] = xx + 0.58 + self.noise[0]*layer*0.1*((-1)**layer)
-            # env_origins[start_idx:end_idx, 1] = yy - 0.12 + self.noise[1]*layer*0.1*((-1)**layer)
+            env_origins[start_idx:end_idx, 0] = xx + 0.58 + self.noise[0]*layer*0.1*((-1)**layer)
+            env_origins[start_idx:end_idx, 1] = yy - 0.12 + self.noise[1]*layer*0.1*((-1)**layer)
 
             # env_origins[start_idx:end_idx, 0] = xx + 0.52
             # env_origins[start_idx:end_idx, 1] = yy - 0.13

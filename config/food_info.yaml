@@ -1,7 +1,7 @@
-ball_amount: 1
-friction: 0.39
-l_radius: 0.0078
-len: 4
-mass: 0.0026
-r_radius: 0.0035
-shape: sphere
+ball_amount: 3
+friction: 0.5
+l_radius: 0.005
+len: 5
+mass: 0.01
+r_radius: 0.005
+shape: cube

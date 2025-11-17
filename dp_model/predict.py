@@ -65,17 +65,18 @@ class LfD():
         checkpoint = torch.load('/media/hcis-s22/data/dp_experiments/' + self.cfg.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
                                 map_location=self.cfg.testing.device)
 
+
         # for docker
         # checkpoint = torch.load('/workspace/' + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
         #                         map_location=self.cfg.testing.device)
                                 
   
-        ema = copy.copy(self.diffusion_model)
-        ema.to(self.cfg.testing.device)
+        # ema = copy.copy(self.diffusion_model)
+        # ema.to(self.cfg.testing.device)
         
         # load model checkpoint
-        ema.load_state_dict(checkpoint['ema_state_dict'])
-        self.policy = ema
+        self.diffusion_model.load_state_dict(checkpoint['ema_state_dict'])
+        self.policy = self.diffusion_model
         
         
         

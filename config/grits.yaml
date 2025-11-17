@@ -10,7 +10,7 @@ camera_view:
 proprioception: False
 guidance: True
 validation: False
-check_traj : False
+check_traj : True
 
 pre_processing:
   image_range: "standard" # standard:[0,1], dp:[-1,1], image_net
@@ -67,16 +67,16 @@ testing:
     weight: 1.0
   spillage_guided:
     mode: "mean"
-    weight: 3 # 3,5,7
+    weight: 0.5 # 3,5,7
   quatity_guided:
     mode: "AE"
     weight: 1.0
 
 food_property:
-  r_radius : 0.009
+  r_radius : 0.01
   l_radius : 0.008
-  mass : 0.003
+  mass : 0.01
   friction : 0.5
-  ball_amount : 1
+  ball_amount : 4
   shape : "sphere"
   len : 4

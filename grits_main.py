@@ -84,7 +84,7 @@ class Grits():
         # self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
 
         self.ref_bowl = np.load("./ref_pcd/small_bowl_pcd.npy")
-        self.pcd_offset = np.load("./ref_pcd/small_tool_offset.npy")
+        self.pcd_offset = np.load("./ref_pcd/small_real_tool_offset.npy")
 
         
         self.pcd_functions = Pcd_functions()
@@ -406,16 +406,18 @@ class Grits():
                         # print(n_pre_action)
                         # simulation_app.close()
 
+
+
                         ori_spillage_logic = self.spillage_predictor.validate(n_ori_action, seg_pcd_array)
                         ori_spillage_prob = torch.nn.functional.softmax(ori_spillage_logic[0], dim=-1)[1]
 
                         pre_spillage_logic = self.spillage_predictor.validate(n_pre_action, seg_pcd_array)
                         pre_spillage_prob = torch.nn.functional.softmax(pre_spillage_logic[0], dim=-1)[1]
-
+                        
                         self.predict_acc.append(pre_spillage_prob.item())
 
                         print()
-                        print(f"original spillage prob: {ori_spillage_prob}")
+                        print(f"original spillage prob : {ori_spillage_prob}")
                         print(f"predicted spillage prob: {pre_spillage_prob}")
                         print()
                         
@@ -431,7 +433,7 @@ class Grits():
                     # else :
                     #     break
                     
-                    if current_goal_idx < 80 :
+                    if current_goal_idx < 90 :
                         goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
                     else :
                         break
@@ -495,8 +497,8 @@ class Grits():
         binary_spillage_amount = [1 if amount > 0 else 0 for amount in self.spillage_amount[0]]
 
 
-        '''
-        file_name = f"result/size/result.json"
+        
+        file_name = f"result/logic/fix/size/cube.json"
         try:
             with open(file_name, "r") as json_file:
                 spillage_data = json.load(json_file)
@@ -519,7 +521,7 @@ class Grits():
             json.dump(spillage_data, json_file, indent=4)
 
         print(f"Spillage data saved: {spillage_data}")
-        '''
+        
 
     def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
         # reset = 1 means record init spillage in experiment setting 
@@ -533,7 +535,7 @@ class Grits():
         spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
         current_spillage = np.count_nonzero(spillage_mask)
 
-        scoop_mask = np.logical_or(z_pose > 0.115, np.logical_and(z_pose > 0, y_pose > 0))
+        scoop_mask = np.logical_or(z_pose > 0.114, np.logical_and(z_pose > 0, y_pose > 0))
         scoop_amount = np.count_nonzero(scoop_mask)
 
         if reset == 1:

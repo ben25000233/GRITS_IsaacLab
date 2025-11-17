@@ -77,7 +77,7 @@ class Spillage_DataCollection():
         # self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
 
         self.ref_bowl = np.load("./ref_pcd/small_bowl_pcd.npy")
-        self.pcd_offset = np.load("./ref_pcd/small_tool_offset.npy")
+        self.pcd_offset = np.load("./ref_pcd/small_real_tool_offset.npy")
    
         self.config_file = "./config/spillage_collect_time.yaml"
 
@@ -255,7 +255,7 @@ class Spillage_DataCollection():
 
         sim_ee_pose = self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7]
         real_eepose = self.functions.eepose_sim2real_offset(sim_ee_pose.to("cpu"))[0]
-
+  
         trans_tool = self.pcd_functions.from_ee_to_spoon(self.pcd_offset, real_eepose)
 
         # np.save(f"ref_spoon_pcd.npy", front_tool_world)
@@ -264,8 +264,6 @@ class Spillage_DataCollection():
 
         object_seg = np.full((trans_tool.shape[0], 1), 1)
         trans_tool = np.hstack((trans_tool, object_seg))
-
-        
 
 
         mix_all_pcd = np.concatenate(( trans_tool, back_food_world, self.ref_bowl), axis=0)
@@ -284,7 +282,7 @@ class Spillage_DataCollection():
         # mix_all_pcd[:, 3] = 2
         # ckeck_pcd = np.concatenate(( mix_all_pcd, real_pcd), axis=0)
         # check_nor_pcd = np.concatenate(( mix_all_nor_pcd, nor_real_pcd), axis=0)
-        # self.pcd_functions.check_pcd_color(ckeck_pcd)
+        self.pcd_functions.check_pcd_color(mix_all_nor_pcd)
         # self.pcd_functions.check_pcd_color(check_nor_pcd)
         # simulation_app.close()
 

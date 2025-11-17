@@ -110,7 +110,7 @@ class MultimodalManipulationDataset(Dataset):
 
         # future ee_pose and tool_pcd
         
-        eepose = dataset["sim_eepose"][idx*future_eepose_num: (idx+1)*future_eepose_num]
+        eepose = dataset["real_eepose"][idx*future_eepose_num: (idx+1)*future_eepose_num]
         
         binary_label = dataset["binary_spillage"][idx]
     

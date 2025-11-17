@@ -3,6 +3,7 @@ import open3d as o3d
 import torch
 from scipy.spatial.transform import Rotation as Rot
 from pytorch3d.transforms import rotation_6d_to_matrix
+import torch.nn.functional as F
 
 class Pcd_functions():
     def __init__(self):
@@ -153,22 +154,31 @@ class Pcd_functions():
         ee_points: [B, 9] or [B, 7]  (batch of ee poses)
         returns: [B, N, 3] (transformed point clouds)
         """
-        device = ee_points.device
+        offsets = torch.tensor(offsets, dtype=torch.float32)
+
+        if ee_points.ndim == 1:
+            ee_points = torch.tensor(ee_points).unsqueeze(0)
+            mode = 'validation'
+        else :
+            mode = 'train'
+
         N = offsets.shape[0]
         B = ee_points.shape[0]
+
+        shape_dim = ee_points.shape[1]
 
         # Precompute constant adjustment matrix
         adjust_matrix = torch.tensor(
             [[1,  0,  0],
             [0, -1,  0],
             [0,  0, -1]],  # Equivalent to Rot.from_euler("XYZ", (0, 180, 180))
-            dtype=torch.float32, device=device
+            dtype=torch.float32
         )
 
         # Handle rotation
-        if ee_points.shape[1] == 9:
+        if shape_dim == 9:
             rotation_mats = rotation_6d_to_matrix(ee_points[:, 3:9])
-        elif ee_points.shape[1] == 7:
+        elif shape_dim == 7:
             quat = ee_points[:, 3:7]
             quat = F.normalize(quat, dim=-1)
             qw, qx, qy, qz = quat[:, 0], quat[:, 1], quat[:, 2], quat[:, 3]
@@ -179,15 +189,18 @@ class Pcd_functions():
             ], dim=1).reshape(-1, 3, 3)
 
         # Apply adjustment matrix
+        rotation_mats = rotation_mats.to(dtype=torch.float32)
         rotation_mats = rotation_mats @ adjust_matrix
 
         # Compute transformed points
-        offsets = offsets.to(device)
         translations = ee_points[:, 0:3]  # [B, 3]
 
         # Transform all offsets in one go
         rotated_offsets = torch.matmul(rotation_mats.unsqueeze(1), offsets.unsqueeze(-1)).squeeze(-1)  # [B, N, 3]
         new_pcds = rotated_offsets + translations.unsqueeze(1)  # [B, N, 3]
+
+        if mode == 'validation':
+            new_pcds = new_pcds.squeeze(0)
 
         return new_pcds
     

@@ -1,7 +1,7 @@
 
 # Number of times to run the script
 # make -f run_sample_makefile run
-NUM_RUNS=20
+NUM_RUNS=50
 
 # Target to run the script multiple times
 run:

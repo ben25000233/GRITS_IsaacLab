@@ -297,12 +297,22 @@ class DiffusionPolicy(nn.Module):
 
         # pre_spillage = torch.sqrt(pre_spillage)
         # make_smoothing_spline(x, y, lam=lam)
+
+        # spillage_prob = torch.sum(traj) * 0 + 1.0  # Create a dependency on traj
+        # spillage_prob = spillage_prob.to(traj.device).requires_grad_(True)
+        # guided_grad = torch.autograd.grad(spillage_prob, traj, allow_unused=True)[0].clone()
+
+        # scaled_pre_spillage = pre_spillage * (1 / pre_spillage.item())
+        # guided_grad = torch.autograd.grad(scaled_pre_spillage, traj)[0]
+
         guided_grad = torch.autograd.grad(pre_spillage, traj)[0]
+        # print("guided_grad= ", torch.mean(guided_grad, dim = 1))
         
+
         # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.01, max = 0.01)
-        guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.05, max = 0.05)
+        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.0, max = 0.03)
         # guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
-        guided_grad[..., 2:] = torch.clip(guided_grad[..., 2:], min=-0.0, max = 0.0)
+        guided_grad[..., 3:] = torch.clip(guided_grad[..., 3:], min=-0.02, max = 0.02)
 
 
         # z = guided_grad[:, :, 2].squeeze(0).to('cpu')
@@ -320,12 +330,18 @@ class DiffusionPolicy(nn.Module):
         
         seg_pcd_array = seg_pcd_list
         eepose_array = traj[0][self.start:self.end] # shape : torch.Size([12, 9])
-
-
-
-        spillage_logic = self.spillage_predictor.validate(eepose_array, seg_pcd_array)
-        spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
         
+        spillage_logic = self.spillage_predictor.validate(eepose_array, seg_pcd_array)
+
+        spillage_prob = spillage_logic[0][1] 
+        # spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
+
+        print(f"guided spillage_prob : {torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]}")
+        
+
+        # print(spillage_logic)
+        # print(spillage_prob)
+        # exit()
         return spillage_prob
 
     def quantity_objective(self, clean_traj, imagine_traj):
@@ -408,11 +424,13 @@ class DiffusionPolicy(nn.Module):
                             
                             # spillage guidance
                             spillage_prob= self.spillage_predict(clean_traj, obs_in.float()) 
-                            # print(f"spillage_prob : {spillage_prob}")
-                            
+                            # print(f"guided spillage_prob : {spillage_prob}")
+
                             guided_grad = self.spillage_objective(clean_traj, spillage_prob)
-                            
-                            all_grad.append(torch.mean(guided_grad[0, 4:], dim = 1)[:3]* self.spillage_weight)
+                         
+                            # normalize gradient
+                            guided_grad = self.normalize_vectors_to_norm(guided_grad, target_norm=0.3)
+
                            
                             # quantity guidance
                             # current_pcd = obs_in[0].float()
@@ -422,16 +440,10 @@ class DiffusionPolicy(nn.Module):
                             self.temp_traj = traj_guided_next.clone()
                             self.guided_grad = guided_grad.clone()
                             self.obs_in = obs_in.clone().float().to(self.device)
-                            # Define the search space for spillage_weight
-                            # search_space = [Real(0.0, 20.0, name='spillage_weight')]
-                            # result = gp_minimize(self.Bo_objective, search_space, n_calls=20, random_state=42)
-                            # optimal_spillage_weight = result.x[0]
-                            # print(f"Optimal spillage_weight: {optimal_spillage_weight}")
-                            # print()
+
 
                             traj_clone = traj_guided_next.clone()
                             traj_clone -= self.spillage_weight * guided_grad
-                            # traj_clone -= optimal_spillage_weight * guided_grad
                             traj_guided_next = traj_clone     
 
                             show_guided_traj.append(traj_guided_next.to("cpu"))          
@@ -470,10 +482,6 @@ class DiffusionPolicy(nn.Module):
                         ).prev_sample
                 
                 guided_traj = traj_guided
-            
-            all_grad_tensor = torch.stack(all_grad, dim=0)  # Stack tensors along a new dimension
-            # print("all_grad: ", torch.mean(all_grad_tensor, dim=0))
-            # print(torch.tensor(all_grad))
 
         # calaulate original trajectory
         # if self.cfg.check_traj == True or start_guidance == False :
@@ -504,7 +512,7 @@ class DiffusionPolicy(nn.Module):
 
             de_ori = _denormalize(traj, self.input_max, self.input_min, self.input_mean)
             de_guided = _denormalize(guided_traj, self.input_max, self.input_min, self.input_mean)
-            show_trajectory(ori_traj=de_ori[:, start:end], guided_traj=de_guided[:, start:end], opt_traj=None)
+            # show_trajectory(ori_traj=de_ori[:, start:end], guided_traj=de_guided[:, start:end], opt_traj=None)
 
             
             # for store denoise processing
@@ -630,6 +638,35 @@ class DiffusionPolicy(nn.Module):
 
         return float(spillage_prob)
 
+    def normalize_vectors_to_norm(self, tensor, target_norm=0.3):
+        """
+        Normalize all vectors in the tensor to have L2 norm = target_norm, except zero vectors.
+        
+        Args:
+            tensor (torch.Tensor): Input tensor of shape [B, 16, D], where B is the batch size,
+                                16 is the number of vectors, and D is the vector dimension.
+            target_norm (float): The desired L2 norm for each vector.
+        
+        Returns:
+            torch.Tensor: Normalized tensor with the same shape as the input.
+        """
+        # Compute the L2 norm of each vector along the last dimension
+        norms = torch.norm(tensor, dim=-1, keepdim=True)  # Shape: [B, 16, 1]
+        
+        # Avoid division by zero: Replace zero norms with 1 (temporarily)
+        norms_safe = torch.where(norms == 0, torch.tensor(1.0, device=tensor.device), norms)
+        
+        # Normalize the vectors to unit norm
+        normalized_tensor = tensor / norms_safe
+        
+        # Scale the vectors to the target norm
+        scaled_tensor = normalized_tensor * target_norm
+        
+        # Restore zero vectors (set them back to zero)
+        scaled_tensor = torch.where(norms == 0, torch.tensor(0.0, device=tensor.device), scaled_tensor)
+    
+        return scaled_tensor
+
 # ====================================================================================================================================
 def show_trajectory(ori_traj=None, guided_traj=None, opt_traj=None):
     fig, ax = plt.subplots()
@@ -689,7 +726,7 @@ def show_trajectory(ori_traj=None, guided_traj=None, opt_traj=None):
     mean_y = (min(y_vals) + max(y_vals))/2
     mean_z = (min(z_vals) + max(z_vals))/2
     ax.set_xlim(mean_y - 0.05, mean_y + 0.05)
-    ax.set_ylim(mean_z - 0.025, mean_z + 0.025)
+    ax.set_ylim(mean_z - 0.05, mean_z + 0.05)
     # Show plot
     plt.show()
 
@@ -718,21 +755,6 @@ def get_translation_matrix(x, y, z):
     [0, 0, 0, 1]
     ])
 
-# from pytorch3d.transforms import rotation_6d_to_matrix, matrix_to_rotation_6d
-# def from_ee_to_spoon(ee_traj):    
-#     T_spoon_to_center = get_translation_matrix(0.03, 0, 0.17)
-#     ee_traj = ee_traj.squeeze(0) # (H, 9)
-#     spoon_traj = torch.zeros_like(ee_traj) # (H, 9)
-
-#     for i in range(ee_traj.shape[1]):
-#         ee = ee_traj[i]
-#         ee_pose = torch.eye(4)
-#         ee_pose[0:3, 3] = ee[0:3]
-#         ee_pose[0:3, 0:3] = rotation_6d_to_matrix(ee[3:])
-#         spoon_pose = torch.mm(ee_pose, T_spoon_to_center)
-#         spoon_traj[i, 0:3] = spoon_pose[0:3, 3]
-#         spoon_traj[i, 3:] = matrix_to_rotation_6d(spoon_pose[0:3, 0:3])
-#     return spoon_traj.unsqueeze(0) # (B, H, 9)
 
 # def _normalize(data, input_max, input_min, input_mean):
 #     ranges = input_max - input_min

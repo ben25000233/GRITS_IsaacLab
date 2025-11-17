@@ -1,0 +1,15 @@
+{
+    "r_radius": 0.01,
+    "mass": 0.01,
+    "ball_amount": 4,
+    "guided_weight": 0.5,
+    "spillage_scoop": [
+        [
+            0,
+            2
+        ]
+    ],
+    "predict_result_list": [
+        true
+    ]
+}

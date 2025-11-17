@@ -24,7 +24,7 @@ eepose: 1.0
 
 
 # Training parameters
-lr: 0.0001
+lr: 0.00002
 beta1: 0.9
 seed: 1234
 max_epoch: 500
