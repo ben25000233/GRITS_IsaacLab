@@ -154,7 +154,7 @@ class Env_functions():
 
         return soft_cfg
 
-    def add_rigid(self): 
+    def add_rigid(self, obj_name = "rigid_object", init_pose = (0.58, -0.12, 0.12), amount = 5): 
     
         r_radius = round(random.uniform(0.0025, 0.01), 4)
         l_radius = round(random.uniform(0.0025, 0.01), 4)
@@ -165,12 +165,12 @@ class Env_functions():
         n = random.randint(3, 5)
 
 
-        ball_amount = 3
-        r_radius = 0.005 + self.noise_index*0.0001
+        ball_amount = amount
+        r_radius = 0.01
         l_radius = r_radius
         # ball_amount = int((0.01/r_radius)**3 * 5)
    
-        n = 5
+        n = 4
         mass = 0.01
         friction = 0.5
 
@@ -198,15 +198,10 @@ class Env_functions():
         # ball_amount = 1
 
 
-        self.food_info_cfg["r_radius"] = r_radius
-        self.food_info_cfg["l_radius"] = l_radius
-        self.food_info_cfg["mass"] = mass
-        self.food_info_cfg["friction"] = friction
-        self.food_info_cfg["ball_amount"] = ball_amount
-        self.food_info_cfg["len"] = n
+        
 
 
-        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, x_offset = 0.005)
+        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, x_offset = 0.005, init_pose = init_pose)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
 
 
@@ -261,10 +256,8 @@ class Env_functions():
 
         shapes = [cfg_sphere, cfg_cube, cfg_cone, cfg_cylinder]
         obj_cfg = random.choice(shapes)
-        obj_cfg = cfg_cube
+        obj_cfg = cfg_sphere
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
-
-
         
         if ball_shape == "sphere":
             self.food_info_cfg["shape"] = "sphere"    
@@ -275,6 +268,16 @@ class Env_functions():
         elif ball_shape == "cuboid":  
             self.food_info_cfg["shape"] = "cube"
 
+        self.food_info_cfg["r_radius"] = r_radius
+        self.food_info_cfg["l_radius"] = l_radius
+        self.food_info_cfg["mass"] = mass
+        self.food_info_cfg["friction"] = friction
+        self.food_info_cfg["ball_amount"] = ball_amount
+        self.food_info_cfg["len"] = n
+        if obj_name == "rigid_object":
+            self.food_info_cfg["init_ball_amount"] = ball_amount
+        elif obj_name == "backup_object":
+            self.food_info_cfg["backup_ball_amount"] = ball_amount
 
         with open("./config/food_info.yaml", "w") as cfg_file:
             yaml.dump(self.food_info_cfg, cfg_file, default_flow_style=False)
@@ -284,18 +287,15 @@ class Env_functions():
 
 
         for idx, origin in tqdm.tqdm(enumerate(rigid_origins), total=len(rigid_origins)):
-            obj_cfg.func(f"/World/rigid/Object{idx:02d}", obj_cfg, translation=origin)
+            obj_cfg.func(f"/World/rigid/{obj_name}{idx:02d}", obj_cfg, translation=origin)
             # obj_cfg.func(f"/World/envs/env_00/rigid/Object{idx:02d}", obj_cfg, translation=origin)
             # obj_cfg.func(f"/World/envs/env_01/rigid/Object{idx:02d}", obj_cfg, translation=origin)
             # prim_utils.create_prim
 
         rigid_cfg = RigidObjectCfg(
-            prim_path=f"/World/rigid/Object.*",
-            # prim_path="/World/envs/env_00/rigid/Object.*",
-            # prim_path="/World/envs/env_.*/rigid/Object.*",
+            prim_path=f"/World/rigid/{obj_name}.*",
             spawn=None,
             init_state=RigidObjectCfg.InitialStateCfg(),
-            # debug_vis=True,
         )
 
         # return rigid_cfg, food_info
@@ -372,7 +372,7 @@ class Env_functions():
 
         return camera
 
-    def define_origins(self, n: int, layer: int, spacing: float, x_offset: float) -> list[list[float]]:
+    def define_origins(self, n: int, layer: int, spacing: float, x_offset: float, init_pose = (0.58, -0.12, 0.12)) -> list[list[float]]:
         """
         Defines the origins of a 3D grid with n * n particles per layer and m layers stacked along the z-axis.
 
@@ -395,6 +395,8 @@ class Env_functions():
         xx = xx.flatten() * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
         yy = yy.flatten() * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
 
+        init_x, init_y, init_z = init_pose
+
 
         # Fill in the coordinates for each layer
         for layer in range(layer):
@@ -415,13 +417,13 @@ class Env_functions():
             '''
 
             # Set x, y, and z coordinates for this layer
-            env_origins[start_idx:end_idx, 0] = xx + 0.58 + self.noise[0]*layer*0.1*((-1)**layer)
-            env_origins[start_idx:end_idx, 1] = yy - 0.12 + self.noise[1]*layer*0.1*((-1)**layer)
+            env_origins[start_idx:end_idx, 0] = xx + init_x + self.noise[0]*layer*0.1*((-1)**layer)
+            env_origins[start_idx:end_idx, 1] = yy + init_y + self.noise[1]*layer*0.1*((-1)**layer)
 
             # env_origins[start_idx:end_idx, 0] = xx + 0.52
             # env_origins[start_idx:end_idx, 1] = yy - 0.13
 
-            env_origins[start_idx:end_idx, 2] = layer * spacing + 0.12
+            env_origins[start_idx:end_idx, 2] = layer * spacing + init_z
 
         # Convert the origins to a list of lists and return
         return env_origins.tolist()
@@ -467,6 +469,7 @@ class TableTopSceneCfg(InteractiveSceneCfg):
 
     # rigid_object = add_rigid()
     rigid_object = env_functions.add_rigid()
+    backup_object = env_functions.add_rigid(init_pose = (0.58, -0.12, -0.2), obj_name = "backup_object", amount = 1)
     
 
     front_camera = env_functions.add_camera("front")

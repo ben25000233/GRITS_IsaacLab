@@ -307,6 +307,8 @@ class Grits():
         # self.front_camera = scene["front_camera"]
         self.back_camera = scene["back_camera"]
         self.device = sim.device
+        self.food_objects = scene["rigid_object"]
+        self.back_objects = scene["backup_object"]
 
         
 
@@ -345,6 +347,11 @@ class Grits():
         current_goal_idx = 0
         goal_pose = None
         action = None
+
+        # for perturbation
+        modify_time = self.cfg.perturbation.time
+        add_back = 0
+        check_add = 0
 
 
         id_to_labels = self.back_camera.data.info[0]["semantic_segmentation"]["idToLabels"]
@@ -387,7 +394,6 @@ class Grits():
             
                 self.robot.write_joint_state_to_sim(joint_pos, joint_vel)
                 self.robot.reset()
-
             
             else :
    
@@ -396,7 +402,7 @@ class Grits():
                     self.get_info(robot_entity_cfg)
             
 
-                    if current_goal_idx % self.action_horizon == 0 :
+                    if current_goal_idx % self.action_horizon == 0 and check_add == 0:
                    
                         if self.cfg.guidance == True and current_goal_idx >= 0 :
                             guidance_trigger = True
@@ -424,14 +430,6 @@ class Grits():
                         print("current_goal_idx : ", current_goal_idx)
                         self.cal_spillage_scooped(scene = scene, reset = 0)
 
-                    # if current_goal_idx < 72 :
-                    #     goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
-                    # elif current_goal_idx >=72 and current_goal_idx <= 84:
-                    #     if current_goal_idx == 72:
-                    #         goal_pose = torch.tensor(action[0]).to(self.device)
-                    #     goal_pose[1] += current_goal_idx*0.0005
-                    # else :
-                    #     break
                     
                     if current_goal_idx < 90 :
                         goal_pose = torch.tensor(action[current_goal_idx % self.action_horizon]).to(self.device)
@@ -445,8 +443,27 @@ class Grits():
                     diff_ik_controller.reset()
                     diff_ik_controller.set_command(ik_commands)
 
+                    if self.cfg.perturbation.enable == True : 
+                        if current_goal_idx == modify_time and check_add == 0:
+                            if self.cfg.perturbation.type == "move" :
+                                self._spawn_cubes_at_time(torch.tensor([0], device=self.device), self.food_objects)
+                            elif self.cfg.perturbation.type == "add" :
+                                self._spawn_cubes_at_time(torch.tensor([0], device=self.device), self.back_objects)
+                            check_add = 1
+                        if current_goal_idx == modify_time and check_add == 1:
+                            current_goal_idx -= 1
+                            add_back += 1
+                        if add_back == self.action_horizon:
+                            self.cal_spillage_scooped(scene = scene, reset = 1)
+                            current_goal_idx += 1
+                            add_back += 1
+                            check_add = 0
+
                     # change goal
                     current_goal_idx += 1
+                    
+
+                    
 
             # obtain quantities from simulation
             jacobian = self.robot.root_physx_view.get_jacobians()[:, ee_jacobi_idx, :, robot_entity_cfg.joint_ids]
@@ -517,32 +534,27 @@ class Grits():
         spillage_data["predict_result_list"].append(binary_predict_acc == binary_spillage_amount)
 
         # Write the updated array back to the JSON file
-        with open(file_name, "w") as json_file:
-            json.dump(spillage_data, json_file, indent=4)
+        # with open(file_name, "w") as json_file:
+        #     json.dump(spillage_data, json_file, indent=4)
 
         print(f"Spillage data saved: {spillage_data}")
         
 
     def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
         # reset = 1 means record init spillage in experiment setting 
-        current_spillage = 0
-        scoop_amount = 0
 
         rigid_object = scene["rigid_object"].data.body_link_state_w
+        backup_object = scene["backup_object"].data.body_link_state_w
+        rigid_object = torch.cat((rigid_object, backup_object), dim=0)
+
         y_pose = rigid_object[:,0, 1].to("cpu")
         z_pose = rigid_object[:,0, 2].to("cpu")
 
         spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
         current_spillage = np.count_nonzero(spillage_mask)
 
-        scoop_mask = np.logical_or(z_pose > 0.114, np.logical_and(z_pose > 0, y_pose > 0))
+        scoop_mask = np.logical_or(z_pose > 0.12, np.logical_and(z_pose > 0, y_pose > 0))
         scoop_amount = np.count_nonzero(scoop_mask)
-
-        if reset == 1:
-            init_amount_mask = z_pose > 0.03
-            self.init_amount_amount = np.count_nonzero(init_amount_mask)
-   
-
         
         if reset == 0:
          
@@ -571,6 +583,97 @@ class Grits():
             print(f"scoop_num : {int(scoop_amount)}")
        
         self.pre_spillage[env_index] = int(current_spillage)
+
+
+    def _generate_new_cube_positions(self) -> torch.Tensor:
+        """
+        Generates new origins for the cubes based on the current food properties.
+        This is a modified version of define_origins from Env_functions, generating the tensor directly.
+        """
+        # Load properties (which you save in add_rigid)
+        with open("./config/food_info.yaml", "r") as f:
+            food_info_cfg = yaml.safe_load(f)
+            
+        r_radius = food_info_cfg["r_radius"]
+        l_radius = food_info_cfg["l_radius"]
+        n = food_info_cfg["len"]
+        if self.cfg.perturbation.type == "move":
+            layer = food_info_cfg["init_ball_amount"]
+        else:
+            layer = food_info_cfg["backup_ball_amount"]
+        self.num_balls = n * n * layer
+        
+        # Recalculate spacing and offsets based on your Env_functions logic
+        spacing = max(r_radius, l_radius) * 2
+        x_offset = 0.005 # from your add_rigid call
+        
+        # Calculate the total number of origins
+        num_origins = n * n * layer
+
+        # Initialize a tensor to store all origins
+        env_origins = torch.zeros(num_origins, 3, device=self.device)
+        
+        # Create 2D grid coordinates for the n x n grid in each layer
+        xx, yy = torch.meshgrid(torch.arange(n), torch.arange(n), indexing="xy")
+        xx = xx.flatten().to(self.device) * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
+        yy = yy.flatten().to(self.device) * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
+
+        # Noise values are currently in env_functions, but for dynamic spawning, 
+        # let's use a simpler fixed offset for now, or sample new noise if desired.
+        
+        # Base position (where you place the bowl)
+        base_x, base_y, base_z = 0.575, -0.11, 0.12 # z is set to 0.12 (above the bowl floor)
+
+        # Fill in the coordinates for each layer
+        for layer_idx in range(layer):
+            start_idx = layer_idx * n * n
+            end_idx = start_idx + n * n
+
+            # Sample new noise for each layer dynamically if needed, 
+            # otherwise, keep the original logic for pattern generation.
+            
+            # Using fixed offsets from your original logic (0.58, -0.12) which matches bowl pos
+            env_origins[start_idx:end_idx, 0] = xx + base_x
+            env_origins[start_idx:end_idx, 1] = yy + base_y
+            env_origins[start_idx:end_idx, 2] = layer_idx * spacing + base_z
+
+        return env_origins
+
+
+    def _spawn_cubes_at_time(self, env_ids: torch.Tensor, food_objects):
+        """
+        Repositions all cubes in the specified environments.
+        """
+        # 1. Determine how many cubes are in the collection 
+        # (It's num_objects / num_envs, which is all the food in one env)
+
+        
+        # 2. Generate the new positions for all cubes (currently only for env 0)
+        # Note: We assume only one environment is being reset at a time.
+        new_positions = self._generate_new_cube_positions()
+        
+        # 3. Create the state tensor for the cubes in the target environments
+        # State: [num_envs * num_objects_per_env, 13]
+        state_dim = 13
+        current_state = torch.zeros((len(env_ids) * self.num_balls, state_dim), device=self.device)
+        
+        # 4. Populate the state tensor with the new positions (and default orientation/velocity)
+        for i, env_id in enumerate(env_ids):
+            start_idx = i * self.num_balls
+            end_idx = start_idx + self.num_balls
+            
+            # Set position (indices 0, 1, 2)
+            current_state[start_idx:end_idx, 0:3] = new_positions
+            
+            # Set quaternion to identity (wxyz, indices 3, 4, 5, 6)
+            current_state[start_idx:end_idx, 3:7] = torch.tensor([0.0, 0.0, 0.0, 1.0], device=self.device) 
+            
+            # Set linear and angular velocities to zero (indices 7-12)
+            current_state[start_idx:end_idx, 7:] = 0.0
+
+        # 5. Write the new state back to the simulation
+        body_indices_to_update = food_objects.body_names[env_ids]
+        food_objects.write_root_state_to_sim(current_state)
         
     
     # def qua_to_rotation_6d(self, ee_traj):

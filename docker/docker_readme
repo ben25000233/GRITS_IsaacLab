@@ -5,65 +5,61 @@
 # modify ckpt path in predict.py line 65 
 
 
-docker run --name isaac-lab --shm-size="16g" --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
-   -e "PRIVACY_CONSENT=Y" \
-   -e "PRIVACY_CONSENT=Y" \
-   -e DISPLAY=$DISPLAY \
-   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-   -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
-   -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
-   -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
-   -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
-   -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
-   -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
-   -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
-   -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-   -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-   -v /media/hcis-s22/data/dp_experiments/0623_single/ckpt:/workspace/ckpt \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/mix_spillage_dataset:/workspace/train_dataset \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/val_spillage_dataset:/workspace/val_dataset \
-   isaac-lab-base
+#build docker image(in isaaclab_grits folder)
 
+./docker/container.py start
 
-docker run --name isaac-lab-cube --shm-size="16g" --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
-   -e "PRIVACY_CONSENT=Y" \
-   -e "PRIVACY_CONSENT=Y" \
-   -e DISPLAY=$DISPLAY \
-   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-   -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
-   -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
-   -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
-   -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
-   -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
-   -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
-   -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
-   -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-   -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-   -v /media/hcis-s22/data/dp_experiments/0623_single/ckpt:/workspace/ckpt \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/single_shape_spillage_dataset/small_cube_only/:/workspace/train_dataset \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/small_val_spillage_dataset:/workspace/val_dataset \
-   isaac-lab-base
+# modify ckpt path in predict.py line 65 
 
+# without gui
+docker run \
+    --name spillage_training \
+    --entrypoint bash \
+    -it \
+    --gpus all \
+    --rm \
+    --shm-size="24g" \
+    -e "ACCEPT_EULA=Y" \
+    -e "PRIVACY_CONSENT=Y" \
+    -e "DISPLAY=" \
+    -e "USE_EGL=1" \
+    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
+    -v /home/hcis-s21/Desktop/benyang/GRITS_IsaacLab:/workspace/grits \
+    -v /media/hcis-s21/data/benyang/0901_sim/ckpt:/workspace/dp_ckpt \
+    -v /media/hcis-s21/data/benyang/isaaclab_spillage_dataset/8_26:/workspace/spillage_dataset \
+    isaac-lab-base
 
-
-docker run --name isaac-lab-cube --shm-size="16g" --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
-   -e "PRIVACY_CONSENT=Y" \
-   -e "PRIVACY_CONSENT=Y" \
-   -e DISPLAY=$DISPLAY \
-   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-   -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
-   -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
-   -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
-   -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
-   -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
-   -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
-   -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
-   -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-   -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-   -v /media/hcis-s22/data/dp_experiments/0623_single/ckpt:/workspace/ckpt \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_dataset \
-   -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_dataset \
-   isaac-lab-base
+# with gui
+docker run \
+    --name isaac-lab \
+    --entrypoint bash \
+    -it \
+    --gpus all \
+    --rm \
+    --network=host \
+    -e "ACCEPT_EULA=Y" \
+    -e "PRIVACY_CONSENT=Y" \
+    -e "DISPLAY=$DISPLAY" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
+    -v /home/hcis-s21/Desktop/benyang/GRITS_IsaacLab:/workspace/grits \
+    -v /media/hcis-s21/data/benyang/0901_sim/ckpt:/workspace/dp_ckpt \
+    -v /media/hcis-s21/data/benyang/isaaclab_spillage_dataset/8_26:/workspace/spillage_dataset \
+    isaac-lab-base
 
 
 

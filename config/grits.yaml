@@ -11,6 +11,10 @@ proprioception: False
 guidance: True
 validation: False
 check_traj : True
+perturbation: 
+  enable : True
+  type : "add"
+  time : 24
 
 pre_processing:
   image_range: "standard" # standard:[0,1], dp:[-1,1], image_net

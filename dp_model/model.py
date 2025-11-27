@@ -336,7 +336,7 @@ class DiffusionPolicy(nn.Module):
         spillage_prob = spillage_logic[0][1] 
         # spillage_prob = torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]
 
-        print(f"guided spillage_prob : {torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]}")
+        # print(f"guided spillage_prob : {torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]}")
         
 
         # print(spillage_logic)
@@ -429,7 +429,7 @@ class DiffusionPolicy(nn.Module):
                             guided_grad = self.spillage_objective(clean_traj, spillage_prob)
                          
                             # normalize gradient
-                            guided_grad = self.normalize_vectors_to_norm(guided_grad, target_norm=0.3)
+                            # guided_grad = self.normalize_vectors_to_norm(guided_grad, target_norm=0.3)
 
                            
                             # quantity guidance

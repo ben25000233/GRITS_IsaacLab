@@ -1,7 +1,9 @@
-ball_amount: 3
+backup_ball_amount: 1
+ball_amount: 1
 friction: 0.5
-l_radius: 0.005
-len: 5
+init_ball_amount: 5
+l_radius: 0.01
+len: 4
 mass: 0.01
-r_radius: 0.005
-shape: cube
+r_radius: 0.01
+shape: sphere
