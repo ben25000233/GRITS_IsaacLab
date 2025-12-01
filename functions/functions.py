@@ -65,6 +65,6 @@ class functions():
         temp_1 = temp.reshape(new_shape )
  
         return temp_1
-    
+
     
     

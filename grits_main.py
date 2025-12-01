@@ -49,7 +49,7 @@ import open3d as o3d
 import yaml
 import json
 from functions.pcd_functions import Pcd_functions
-from functions.Env_functions import TableTopSceneCfg
+from functions.Env_functions import TableTopSceneCfg, Env_functions
 from functions.functions import functions
 
 np.random.seed(42)
@@ -127,6 +127,7 @@ class Grits():
         self.pre_spillage = np.zeros(self.num_envs)
 
         self.predict_acc = []
+        self.env_functions = Env_functions()
 
 
     def get_info(self, robot_entity_cfg = None):
@@ -308,7 +309,7 @@ class Grits():
         self.back_camera = scene["back_camera"]
         self.device = sim.device
         self.food_objects = scene["rigid_object"]
-        self.back_objects = scene["backup_object"]
+        self.backup_objects = scene["backup_object"]
 
         
 
@@ -448,7 +449,7 @@ class Grits():
                             if self.cfg.perturbation.type == "move" :
                                 self._spawn_cubes_at_time(torch.tensor([0], device=self.device), self.food_objects)
                             elif self.cfg.perturbation.type == "add" :
-                                self._spawn_cubes_at_time(torch.tensor([0], device=self.device), self.back_objects)
+                                self._spawn_cubes_at_time(torch.tensor([0], device=self.device), self.backup_objects)
                             check_add = 1
                         if current_goal_idx == modify_time and check_add == 1:
                             current_goal_idx -= 1
@@ -538,6 +539,8 @@ class Grits():
         #     json.dump(spillage_data, json_file, indent=4)
 
         print(f"Spillage data saved: {spillage_data}")
+
+        print(np.array(self.back_rgb_list[0]).shape) # (91, 960, 1280, 3)
         
 
     def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
@@ -585,7 +588,7 @@ class Grits():
         self.pre_spillage[env_index] = int(current_spillage)
 
 
-    def _generate_new_cube_positions(self) -> torch.Tensor:
+    def _generate_new_ball_positions(self) -> torch.Tensor:
         """
         Generates new origins for the cubes based on the current food properties.
         This is a modified version of define_origins from Env_functions, generating the tensor directly.
@@ -605,7 +608,6 @@ class Grits():
         
         # Recalculate spacing and offsets based on your Env_functions logic
         spacing = max(r_radius, l_radius) * 2
-        x_offset = 0.005 # from your add_rigid call
         
         # Calculate the total number of origins
         num_origins = n * n * layer
@@ -615,25 +617,34 @@ class Grits():
         
         # Create 2D grid coordinates for the n x n grid in each layer
         xx, yy = torch.meshgrid(torch.arange(n), torch.arange(n), indexing="xy")
-        xx = xx.flatten().to(self.device) * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
-        yy = yy.flatten().to(self.device) * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
+        xx = xx.flatten() * spacing - spacing * (n - 1) / 2
+        yy = yy.flatten() * spacing - spacing * (n - 1) / 2
 
         # Noise values are currently in env_functions, but for dynamic spawning, 
         # let's use a simpler fixed offset for now, or sample new noise if desired.
         
         # Base position (where you place the bowl)
-        base_x, base_y, base_z = 0.575, -0.11, 0.12 # z is set to 0.12 (above the bowl floor)
+        base_x, base_y = 0.575, -0.11 
+        # z is set to 0.07 to make balls are inside bowl initially easily
+        # z is set to 0.12 for adding new balls above bowl rim
+        if self.cfg.perturbation.type == "move":
+            base_z = 0.08
+        else:
+            base_z = 0.12
 
         # Fill in the coordinates for each layer
         for layer_idx in range(layer):
             start_idx = layer_idx * n * n
             end_idx = start_idx + n * n
 
+            noise_x = random.uniform(-0.03, 0.03)
+            noise_y = random.uniform(-0.03, 0.03)
+
             # Sample new noise for each layer dynamically if needed, 
             # otherwise, keep the original logic for pattern generation.
             
             # Using fixed offsets from your original logic (0.58, -0.12) which matches bowl pos
-            env_origins[start_idx:end_idx, 0] = xx + base_x
+            env_origins[start_idx:end_idx, 0] = xx + base_x + noise_x
             env_origins[start_idx:end_idx, 1] = yy + base_y
             env_origins[start_idx:end_idx, 2] = layer_idx * spacing + base_z
 
@@ -650,20 +661,37 @@ class Grits():
         
         # 2. Generate the new positions for all cubes (currently only for env 0)
         # Note: We assume only one environment is being reset at a time.
-        new_positions = self._generate_new_cube_positions()
+            
+        # z is set to 0.07 to make balls are inside bowl initially easily
+        # z is set to 0.12 for adding new balls above bowl rim
+        n = self.cfg["food_property"]["len"]
+        if self.cfg["perturbation"]["type"] == "move":
+            layer = self.cfg["food_property"]["init_ball_amount"]
+            init_pose = (0.58, -0.12, 0.08)
+        else:
+            layer = self.cfg["food_property"]["backup_ball_amount"]
+            init_pose = (0.58, -0.12, 0.12)
+        num_balls = n * n * layer
+        new_positions = self.env_functions.define_origins(
+            n = n, 
+            layer = layer, 
+            spacing = max(self.cfg["food_property"]["r_radius"], self.cfg["food_property"]["l_radius"]) * 2, 
+            init_pose = init_pose,
+            )
+
         
         # 3. Create the state tensor for the cubes in the target environments
         # State: [num_envs * num_objects_per_env, 13]
         state_dim = 13
-        current_state = torch.zeros((len(env_ids) * self.num_balls, state_dim), device=self.device)
+        current_state = torch.zeros((len(env_ids) * num_balls, state_dim), device=self.device)
         
         # 4. Populate the state tensor with the new positions (and default orientation/velocity)
         for i, env_id in enumerate(env_ids):
-            start_idx = i * self.num_balls
-            end_idx = start_idx + self.num_balls
+            start_idx = i * num_balls
+            end_idx = start_idx + num_balls
             
             # Set position (indices 0, 1, 2)
-            current_state[start_idx:end_idx, 0:3] = new_positions
+            current_state[start_idx:end_idx, 0:3] = torch.tensor(new_positions, device=self.device)
             
             # Set quaternion to identity (wxyz, indices 3, 4, 5, 6)
             current_state[start_idx:end_idx, 3:7] = torch.tensor([0.0, 0.0, 0.0, 1.0], device=self.device) 

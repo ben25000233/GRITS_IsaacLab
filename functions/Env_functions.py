@@ -28,12 +28,8 @@ import yaml
 
 class Env_functions():
     def __init__(self):
-        config_dir = "config"
-        config_file_name = "grits.yaml"
-        self.cfg = configparser.get_config(config_dir=config_dir, file_name=config_file_name)
 
-        # self.food_info_cfg = configparser.get_config(config_dir=config_dir, file_name="food_info.yaml")
-        with open("config/food_info.yaml", "r") as f:
+        with open("config/grits.yaml", "r") as f:
             self.food_info_cfg = yaml.safe_load(f)
 
 
@@ -199,9 +195,7 @@ class Env_functions():
 
 
         
-
-
-        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, x_offset = 0.005, init_pose = init_pose)
+        rigid_origins = self.define_origins(n = n, layer = ball_amount, spacing=max(r_radius, l_radius) * 2, init_pose = init_pose)
         # str_usd_path ="/home/hcis-s22/benyang/IsaacLab/source/isaaclab_assets/data/str.usd"
 
 
@@ -260,26 +254,26 @@ class Env_functions():
         ball_shape = obj_cfg.__class__.__name__.lower().replace("cfg", "")
         
         if ball_shape == "sphere":
-            self.food_info_cfg["shape"] = "sphere"    
+            self.food_info_cfg["food_property"]["shape"] = "sphere"    
         elif ball_shape == "cone":
-            self.food_info_cfg["shape"] = "cone"
+            self.food_info_cfg["food_property"]["shape"] = "cone"
         elif ball_shape == "cylinder":
-            self.food_info_cfg["shape"] = "cylinder"
+            self.food_info_cfg["food_property"]["shape"] = "cylinder"
         elif ball_shape == "cuboid":  
-            self.food_info_cfg["shape"] = "cube"
+            self.food_info_cfg["food_property"]["shape"] = "cube"
 
-        self.food_info_cfg["r_radius"] = r_radius
-        self.food_info_cfg["l_radius"] = l_radius
-        self.food_info_cfg["mass"] = mass
-        self.food_info_cfg["friction"] = friction
-        self.food_info_cfg["ball_amount"] = ball_amount
-        self.food_info_cfg["len"] = n
+        self.food_info_cfg["food_property"]["r_radius"] = r_radius
+        self.food_info_cfg["food_property"]["l_radius"] = l_radius
+        self.food_info_cfg["food_property"]["mass"] = mass
+        self.food_info_cfg["food_property"]["friction"] = friction
+        self.food_info_cfg["food_property"]["ball_amount"] = ball_amount
+        self.food_info_cfg["food_property"]["len"] = n
         if obj_name == "rigid_object":
-            self.food_info_cfg["init_ball_amount"] = ball_amount
+            self.food_info_cfg["food_property"]["init_ball_amount"] = ball_amount
         elif obj_name == "backup_object":
-            self.food_info_cfg["backup_ball_amount"] = ball_amount
+            self.food_info_cfg["food_property"]["backup_ball_amount"] = ball_amount
 
-        with open("./config/food_info.yaml", "w") as cfg_file:
+        with open("./config/grits.yaml", "w") as cfg_file:
             yaml.dump(self.food_info_cfg, cfg_file, default_flow_style=False)
         
 
@@ -372,7 +366,7 @@ class Env_functions():
 
         return camera
 
-    def define_origins(self, n: int, layer: int, spacing: float, x_offset: float, init_pose = (0.58, -0.12, 0.12)) -> list[list[float]]:
+    def define_origins(self, n: int, layer: int, spacing: float, init_pose = (0.58, -0.12, 0.12)) -> list[list[float]]:
         """
         Defines the origins of a 3D grid with n * n particles per layer and m layers stacked along the z-axis.
 
@@ -389,11 +383,10 @@ class Env_functions():
 
         # Initialize a tensor to store all origins
         env_origins = torch.zeros(num_origins, 3)
-        x_offset = 0
         # Create 2D grid coordinates for the n x n grid in each layer
         xx, yy = torch.meshgrid(torch.arange(n), torch.arange(n), indexing="xy")
-        xx = xx.flatten() * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
-        yy = yy.flatten() * (spacing + x_offset) - (spacing + x_offset) * (n - 1) / 2
+        xx = xx.flatten() * spacing - spacing * (n - 1) / 2
+        yy = yy.flatten() * spacing - spacing * (n - 1) / 2
 
         init_x, init_y, init_z = init_pose
 
@@ -468,8 +461,8 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     # soft_object = add_soft()
 
     # rigid_object = add_rigid()
-    rigid_object = env_functions.add_rigid()
-    backup_object = env_functions.add_rigid(init_pose = (0.58, -0.12, -0.2), obj_name = "backup_object", amount = 1)
+    rigid_object = env_functions.add_rigid(amount = 3)
+    backup_object = env_functions.add_rigid(init_pose = (0.58, -0.12, -0.2), obj_name = "backup_object", amount = 2)
     
 
     front_camera = env_functions.add_camera("front")
