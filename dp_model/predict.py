@@ -59,20 +59,20 @@ class LfD():
             noise_scheduler
         )
 
-        self.diffusion_model.to(self.cfg["training"]["device"])
+        self.diffusion_model.to(self.cfg["dp"]["training"]["device"])
    
         # for local running
-        checkpoint = torch.load('/media/hcis-s22/data/dp_experiments/' + self.cfg.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
-                                map_location=self.cfg.testing.device)
+        # checkpoint = torch.load('/media/hcis-s22/data/dp_experiments/' + self.cfg.dp.trial_name + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
+        #                         map_location=self.cfg.dp.testing.device)
 
 
         # for docker
-        # checkpoint = torch.load('/workspace/' + '/ckpt/epoch={}.pth'.format(self.cfg.testing.ckpt_epoch), 
-        #                         map_location=self.cfg.testing.device)
+        checkpoint = torch.load('/workspace/dp_ckpt/epoch={}.pth'.format(self.cfg.dp.testing.ckpt_epoch), 
+                                map_location=self.cfg.dp.testing.device)
                                 
   
         # ema = copy.copy(self.diffusion_model)
-        # ema.to(self.cfg.testing.device)
+        # ema.to(self.cfg.dp.testing.device)
         
         # load model checkpoint
         self.diffusion_model.load_state_dict(checkpoint['ema_state_dict'])

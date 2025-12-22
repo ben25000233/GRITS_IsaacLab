@@ -38,15 +38,7 @@ class Env_functions():
 
         self.noise_index = noise_cfg["index"]
   
-        self.noise = noise_cfg["noises"][0]
-
-        if self.noise_index == 49 :
-            noise_cfg["index"] = 0
-        else :
-            noise_cfg["index"] += 1
-      
-        with open("./init_setting_for_val/noise_pairs.yaml", "w") as yaml_file:
-            yaml.dump(noise_cfg, yaml_file, default_flow_style=False)
+        self.noise = noise_cfg["noises"][self.noise_index]
 
     def add_soft(self): 
 
@@ -150,48 +142,26 @@ class Env_functions():
 
         return soft_cfg
 
-    def add_rigid(self, obj_name = "rigid_object", init_pose = (0.58, -0.12, 0.12), amount = 5): 
+    def add_rigid(self, obj_name = "rigid_object", init_pose = (0.58, -0.12, 0.12)): 
     
-        r_radius = round(random.uniform(0.0025, 0.01), 4)
-        l_radius = round(random.uniform(0.0025, 0.01), 4)
-        mass = round(random.uniform(0.0001, 0.005), 4)
-        friction = round(random.uniform(0, 1),2)
-        max_num = int(256/pow(2, (r_radius - 0.0025)*1000)) 
-        ball_amount = random.randint(1, max(1, max_num))+2
-        n = random.randint(3, 5)
+        # r_radius = round(random.uniform(0.0025, 0.01), 4)
+        # l_radius = round(random.uniform(0.0025, 0.01), 4)
+        # mass = round(random.uniform(0.0001, 0.005), 4)
+        # friction = round(random.uniform(0, 1),2)
+        # max_num = int(256/pow(2, (r_radius - 0.0025)*1000)) 
+        # ball_amount = random.randint(1, max(1, max_num))+2
+        # n = random.randint(3, 5)
 
-
-        ball_amount = amount
-        r_radius = 0.01
-        l_radius = r_radius
-        # ball_amount = int((0.01/r_radius)**3 * 5)
-   
-        n = 4
-        mass = 0.01
-        friction = 0.5
-
-        # r_radius = 0.0025 + (0.01 - 0.0025)*(self.noise_index+1)/50
-        # sphere
-        # r_radius = 0.009*(self.noise_index+1)/25
-        # ball_amount = 9
-        # n = 4
-
-        # cube
-        # r_radius = 0.008
-        # ball_amount = 6
-        # n = 3
-
-        # cone
-        # r_radius = 0.008
-        # ball_amount = 15
-        # n = 3
-
-        # cylinder
-        # r_radius = 0.008
-        # ball_amount = 6
-        # n = 3
-
-        # ball_amount = 1
+        if obj_name == "rigid_object":
+            ball_amount = self.food_info_cfg["food_property"]["ball_amount"]
+        elif obj_name == "backup_object":
+            ball_amount = self.food_info_cfg["food_property"]["backup_ball_amount"] 
+        
+        r_radius = self.food_info_cfg["food_property"]["r_radius"]
+        l_radius = self.food_info_cfg["food_property"]["l_radius"]  
+        mass = self.food_info_cfg["food_property"]["mass"]
+        friction = self.food_info_cfg["food_property"]["friction"]
+        n = self.food_info_cfg["food_property"]["len"]
 
 
         
@@ -266,12 +236,8 @@ class Env_functions():
         self.food_info_cfg["food_property"]["l_radius"] = l_radius
         self.food_info_cfg["food_property"]["mass"] = mass
         self.food_info_cfg["food_property"]["friction"] = friction
-        self.food_info_cfg["food_property"]["ball_amount"] = ball_amount
         self.food_info_cfg["food_property"]["len"] = n
-        if obj_name == "rigid_object":
-            self.food_info_cfg["food_property"]["init_ball_amount"] = ball_amount
-        elif obj_name == "backup_object":
-            self.food_info_cfg["food_property"]["backup_ball_amount"] = ball_amount
+        
 
         with open("./config/grits.yaml", "w") as cfg_file:
             yaml.dump(self.food_info_cfg, cfg_file, default_flow_style=False)
@@ -461,8 +427,8 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     # soft_object = add_soft()
 
     # rigid_object = add_rigid()
-    rigid_object = env_functions.add_rigid(amount = 3)
-    backup_object = env_functions.add_rigid(init_pose = (0.58, -0.12, -0.2), obj_name = "backup_object", amount = 2)
+    rigid_object = env_functions.add_rigid()
+    # backup_object = env_functions.add_rigid(init_pose = (0.58, -0.12, -0.2), obj_name = "backup_object")
     
 
     front_camera = env_functions.add_camera("front")

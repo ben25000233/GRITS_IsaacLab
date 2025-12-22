@@ -110,5 +110,5 @@ RUN /isaac-sim/python.sh -m pip install --no-build-isolation -r requirements.txt
 RUN /isaac-sim/python.sh -m pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable" --upgrade
 
 # Default working directory
-WORKDIR /workspace
+WORKDIR /workspace/grits
 

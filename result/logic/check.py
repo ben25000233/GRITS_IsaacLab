@@ -1,7 +1,9 @@
 import json
 
 # Specify the path to your JSON file
-json_file_path = "./fix/size/cube.json"
+json_file_path = "./fix/amount/small_result.json"
+# json_file_path = "./dynamic/purterbation/move/time_36/cube.json"
+
 
 # Open and read the JSON file
 with open(json_file_path, 'r') as file:

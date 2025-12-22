@@ -31,12 +31,15 @@ docker run \
     -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
     -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-    -v /home/hcis-s21/Desktop/benyang/GRITS_IsaacLab:/workspace/grits \
-    -v /media/hcis-s21/data/benyang/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s21/data/benyang/isaaclab_spillage_dataset/8_26:/workspace/spillage_dataset \
+    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
     isaac-lab-base
 
 # with gui
+# for gui in docker
+xhost +local:docker
+#run docker
 docker run \
     --name isaac-lab \
     --entrypoint bash \
@@ -56,9 +59,9 @@ docker run \
     -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
     -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-    -v /home/hcis-s21/Desktop/benyang/GRITS_IsaacLab:/workspace/grits \
-    -v /media/hcis-s21/data/benyang/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s21/data/benyang/isaaclab_spillage_dataset/8_26:/workspace/spillage_dataset \
+    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
     isaac-lab-base
 
 

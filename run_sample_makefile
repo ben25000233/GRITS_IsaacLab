@@ -1,12 +1,12 @@
 
 # Number of times to run the script
 # make -f run_sample_makefile run
-NUM_RUNS=50
+NUM_RUNS=30
 
 # Target to run the script multiple times
 run:
 	@for i in $(shell seq 1 $(NUM_RUNS)); do \
 		echo "Run #$$i"; \
-#		python grits_main.py --headless; \
-		python grits_main.py; \
+		python grits_main.py --headless; \
+#		python grits_main.py; \
 	done

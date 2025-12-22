@@ -38,7 +38,7 @@ from functions.pcd_functions import Pcd_functions
 from functions.Env_functions import TableTopSceneCfg
 from functions.functions import functions
 
-
+from pyconfigparser import configparser
 from scipy.spatial.transform import Rotation as Rot
 import os
 
@@ -60,15 +60,10 @@ class Dp_dataCollection():
         self.real_food = np.load("./ref_pcd/real_food.npy")
 
         self.init_spoon_pcd = np.load("./ref_pcd/ref_spoon_pcd.npy")
-        self.pcd_offset = np.load("./ref_pcd/real_spoon_pcd_offset.npy")
+        self.pcd_offset = np.load("./ref_pcd/small_real_tool_offset.npy")
 
 
-        # in real, check 0.025 
         self.eepose_offset = 0.035
-        # self.eepose_offset = 0.025
-
-
-        self.pcd_offset = np.load("./ref_pcd/temp_offset.npy")
    
         self.config_file = "./collect_time.yaml"
 
@@ -294,7 +289,7 @@ class Dp_dataCollection():
 
 
         id_to_labels = self.back_camera.data.info[0]["semantic_segmentation"]["idToLabels"]
-        print(id_to_labels)
+        # print(id_to_labels)
         for semantic_id_str, label_info in id_to_labels.items():
             if label_info.get("class") == "bowl":
                 self.bowl_semantic_id = int(semantic_id_str)
@@ -309,9 +304,9 @@ class Dp_dataCollection():
         # Simulation loop
         while simulation_app.is_running():
             # init set
-            print(f"frame_num: {frame_num}")
+            # print(f"frame_num: {frame_num}")
             # joint state
-            print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
+            # print(self.robot.data.joint_pos[:, robot_entity_cfg.joint_ids])
             
             ## eepose
             # print(self.robot.data.body_state_w[:, robot_entity_cfg.body_ids[0], 0:7])
@@ -354,6 +349,7 @@ class Dp_dataCollection():
 
                     # change goal
                     current_goal_idx += 1
+                    print(f"current goal idx: {current_goal_idx}")
                     if current_goal_idx == len(modify_ee_goals) :
                         self.record_info()
                         break
@@ -452,11 +448,15 @@ def main(traj = None, name = None):
 
 if __name__ == "__main__":
     # run the main function
+
+    config_dir = "config"
+    config_file_name = "grits.yaml"
+    cfg = configparser.get_config(config_dir = config_dir, file_name=config_file_name) 
   
 
-    root_dir = "sample_trail/all_eepose_qua"  # Change this to your folder path
+    root_dir = cfg["data_collection"]["dp_read_path"]  # Change this to your folder path
     # br, co, ju, mb, sy, orl
-    subfolder = "brm_02.npy"
+    subfolder = cfg["data_collection"]["dp_read_name"]
 
     subfolder_path = os.path.join(root_dir, subfolder)
     issac = main(traj = np.load(subfolder_path), name = str(subfolder)[:-4])

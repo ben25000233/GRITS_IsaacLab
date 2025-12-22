@@ -141,25 +141,6 @@ class Grits():
         back_depth_image  = self.back_camera.data.output["distance_to_image_plane"][0].cpu().numpy()
         back_seg_image  = self.back_camera.data.output["semantic_segmentation"][0].cpu().numpy()
 
-        # limage_array = np.load("image_array.npy")[0]
-
-        # print(back_rgb_image.shape)
-        # print(limage_array.shape)
-
-        # if np.array_equal(back_rgb_image, limage_array):
-        #     print("same img data")
-        # else :
-        #     print("different img data")
-        
-
-        # plt.imshow(back_rgb_image)
-        # plt.show()
-
-        # plt.imshow(limage_array)
-        # plt.show()
-
-        # simulation_app.close()
-
 
         food_pcd = self.pcd_functions.depth_to_point_cloud(back_depth_image[..., 0], back_seg_image[..., 0], object_type = "food", object_id = self.food_semantic_id)
         back_food_world = self.pcd_functions.transform_to_world(food_pcd[:, :3], self.gt_back)
@@ -309,7 +290,7 @@ class Grits():
         self.back_camera = scene["back_camera"]
         self.device = sim.device
         self.food_objects = scene["rigid_object"]
-        self.backup_objects = scene["backup_object"]
+        # self.backup_objects = scene["backup_object"]
 
         
 
@@ -405,7 +386,7 @@ class Grits():
 
                     if current_goal_idx % self.action_horizon == 0 and check_add == 0:
                    
-                        if self.cfg.guidance == True and current_goal_idx >= 0 :
+                        if self.cfg.dp.guidance == True and current_goal_idx >= 0 :
                             guidance_trigger = True
                         else :
                             guidance_trigger = False
@@ -504,7 +485,7 @@ class Grits():
         friction = self.cfg["food_property"]["friction"]
         ball_amount = self.cfg["food_property"]["ball_amount"]
         shape = self.cfg["food_property"]["shape"]
-        weight = self.cfg.testing.spillage_guided.weight
+        weight = self.cfg.dp.testing.spillage_guided.weight
 
 
         with open("./init_setting_for_val/noise_pairs.yaml", "r") as stream:
@@ -515,8 +496,9 @@ class Grits():
         binary_spillage_amount = [1 if amount > 0 else 0 for amount in self.spillage_amount[0]]
 
 
-        
-        file_name = f"result/logic/fix/size/cube.json"
+        ptime = self.cfg["perturbation"]["time"]
+        # file_name = f"result/logic/dynamic/purterbation/move/time_{ptime}/{shape}.json"
+        file_name = f"result/logic/dynamic/purterbation/ori/{shape}.json"
         try:
             with open(file_name, "r") as json_file:
                 spillage_data = json.load(json_file)
@@ -525,30 +507,40 @@ class Grits():
                              "mass": mass,
                              "ball_amount": ball_amount,
                              "guided_weight": weight,
-                             "spillage_scoop": [],
-                             "predict_result_list": [],}
+                             "spillage_scoop": [],}
 
    
         # Append the current spillage amount to the array
         spillage_scoop = [sum(self.spillage_amount[0]), self.scooped_amount[0][-1]]
         spillage_data["spillage_scoop"].append(spillage_scoop)
-        spillage_data["predict_result_list"].append(binary_predict_acc == binary_spillage_amount)
+        # spillage_data["predict_result_list"].append(binary_predict_acc == binary_spillage_amount)
 
         # Write the updated array back to the JSON file
-        # with open(file_name, "w") as json_file:
-        #     json.dump(spillage_data, json_file, indent=4)
+        with open(file_name, "w") as json_file:
+            json.dump(spillage_data, json_file, indent=4)
 
         print(f"Spillage data saved: {spillage_data}")
 
         print(np.array(self.back_rgb_list[0]).shape) # (91, 960, 1280, 3)
+
+        # modify noise index to change food init pos for next validation
+        with open("./init_setting_for_val/noise_pairs.yaml", "r") as stream:
+            noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
+        if noise_cfg["index"] == 49 :
+            noise_cfg["index"] = 0
+        else :
+            noise_cfg["index"] += 1
+      
+        with open("./init_setting_for_val/noise_pairs.yaml", "w") as yaml_file:
+            yaml.dump(noise_cfg, yaml_file, default_flow_style=False)
         
 
     def cal_spillage_scooped(self, env_index = 0, reset = 0, scene = None):
         # reset = 1 means record init spillage in experiment setting 
 
         rigid_object = scene["rigid_object"].data.body_link_state_w
-        backup_object = scene["backup_object"].data.body_link_state_w
-        rigid_object = torch.cat((rigid_object, backup_object), dim=0)
+        # backup_object = scene["backup_object"].data.body_link_state_w
+        # rigid_object = torch.cat((rigid_object, backup_object), dim=0)
 
         y_pose = rigid_object[:,0, 1].to("cpu")
         z_pose = rigid_object[:,0, 2].to("cpu")
@@ -601,7 +593,7 @@ class Grits():
         l_radius = food_info_cfg["l_radius"]
         n = food_info_cfg["len"]
         if self.cfg.perturbation.type == "move":
-            layer = food_info_cfg["init_ball_amount"]
+            layer = food_info_cfg["ball_amount"]
         else:
             layer = food_info_cfg["backup_ball_amount"]
         self.num_balls = n * n * layer
@@ -666,12 +658,13 @@ class Grits():
         # z is set to 0.12 for adding new balls above bowl rim
         n = self.cfg["food_property"]["len"]
         if self.cfg["perturbation"]["type"] == "move":
-            layer = self.cfg["food_property"]["init_ball_amount"]
+            layer = self.cfg["food_property"]["ball_amount"]
             init_pose = (0.58, -0.12, 0.08)
         else:
             layer = self.cfg["food_property"]["backup_ball_amount"]
             init_pose = (0.58, -0.12, 0.12)
         num_balls = n * n * layer
+
         new_positions = self.env_functions.define_origins(
             n = n, 
             layer = layer, 

@@ -35,7 +35,58 @@ This guide provides step-by-step instructions for building the environment, sett
 
 2. **Run Docker Container**
    ```bash
-   docker run --name isaac-lab --entrypoint bash -it --gpus all        -e "ACCEPT_EULA=Y"        -e "PRIVACY_CONSENT=Y"        -e DISPLAY=$DISPLAY        --rm --network=host        -v /tmp/.X11-unix:/tmp/.X11-unix:rw        -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw        -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw        -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw        -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw        -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw        -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw        -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw        -v ~/docker/isaac-sim/documents:/root/Documents:rw        -v <isaaclab_grits_path>:/workspace/grits        -v <ckpt_path>:/workspace/ckpt        isaac-lab-base
+   # without gui
+	docker run \
+	    --name spillage_training \
+	    --entrypoint bash \
+	    -it \
+	    --gpus all \
+	    --rm \
+	    --shm-size="24g" \
+	    -e "ACCEPT_EULA=Y" \
+	    -e "PRIVACY_CONSENT=Y" \
+	    -e "DISPLAY=" \
+	    -e "USE_EGL=1" \
+	    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+	    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+	    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+	    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+	    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+	    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+	    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+	    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
+	    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+	    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
+	    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
+	    isaac-lab-base
+   ```
+   ```bash
+   # for gui in docker
+	xhost +local:docker
+	#run docker
+	docker run \
+	    --name isaac-lab \
+	    --entrypoint bash \
+	    -it \
+	    --gpus all \
+	    --rm \
+	    --network=host \
+	    -e "ACCEPT_EULA=Y" \
+	    -e "PRIVACY_CONSENT=Y" \
+	    -e "DISPLAY=$DISPLAY" \
+	    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+	    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+	    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+	    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+	    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+	    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+	    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+	    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+	    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
+	    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+	    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
+	    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
+	    isaac-lab-base
    ```
 
 ---

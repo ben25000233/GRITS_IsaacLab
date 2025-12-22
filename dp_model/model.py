@@ -64,7 +64,7 @@ class SingleObEncoder(nn.Module):
             ee_pose_t = ee_pose[:, t, :]  # (batch_size, action_dimension)
             obs_feature = self.obs_encoder(rgbd_image_t) # (batch_size, 512)
 
-            if self.cfg.proprioception:
+            if self.cfg.dp.proprioception:
                 
                 ee_feature = self.ee_encoder(ee_pose_t)  # (batch_size, 32)
                 combined_feature = torch.cat((obs_feature, ee_feature), dim=1) # (batch_size, 512+32)
@@ -123,7 +123,7 @@ class MultiObEncoder(nn.Module):
             front_feature = self.front_encoder(rgbd_image_t[:, :4, :, :]) # (batch_size, 512)
             back_feature = self.back_encoder(rgbd_image_t[:, 4:, :, :]) # (batch_size, 512)
 
-            if self.cfg.proprioception:
+            if self.cfg.dp.proprioception:
                 ee_feature = self.ee_encoder(ee_pose_t)  # (batch_size, 32)
                 combined_feature = torch.cat((front_feature, back_feature, ee_feature), dim=1) # (batch_size, 512+512+32)
                 features.append(combined_feature)
@@ -152,12 +152,12 @@ class DiffusionPolicy(nn.Module):
         self.cfg = cfg
 
         # initialization dimention
-        if self.cfg.proprioception:
+        if self.cfg.dp.proprioception:
             obs_feature_dim += 32
         if self.cfg.camera_view.mode == 'multi':
             obs_feature_dim += 512
         input_dim = action_dim
-        global_cond_dim = obs_feature_dim*cfg.n_obs_steps
+        global_cond_dim = obs_feature_dim*cfg.dp.n_obs_steps
 
 
 
@@ -174,7 +174,7 @@ class DiffusionPolicy(nn.Module):
         mask_generator = LowdimMaskGenerator(
             action_dim=action_dim,
             obs_dim=0,
-            max_n_obs_steps=cfg.n_obs_steps,
+            max_n_obs_steps=cfg.dp.n_obs_steps,
             fix_obs_steps=True,
             action_visible=False
         )
@@ -186,21 +186,21 @@ class DiffusionPolicy(nn.Module):
         self.mask_generator = mask_generator
 
         # define parameters
-        self.horizon = cfg.horizon
-        self.n_action_steps = cfg.n_action_steps
-        self.n_obs_steps = cfg.n_obs_steps
-        self.num_inference_steps = cfg.num_inference_steps
-        self.device = cfg.training.device
+        self.horizon = cfg.dp.horizon
+        self.n_action_steps = cfg.dp.n_action_steps
+        self.n_obs_steps = cfg.dp.n_obs_steps
+        self.num_inference_steps = cfg.dp.num_inference_steps
+        self.device = cfg.dp.training.device
 
         # define guidance
-        self.guidance = cfg.guidance
-        self.goal_guided_mode = cfg.testing.goal_guided.mode
-        self.spillage_guided_mode = cfg.testing.spillage_guided.mode
-        self.quatity_guided_mode = cfg.testing.quatity_guided.mode
-        self.goal_weight = cfg.testing.goal_guided.weight
-        self.spillage_weight = cfg.testing.spillage_guided.weight
-        self.quatity_weight = cfg.testing.quatity_guided.weight
-        # self.guided_weight = cfg.testing.guided_weight
+        self.guidance = cfg.dp.guidance
+        self.goal_guided_mode = cfg.dp.testing.goal_guided.mode
+        self.spillage_guided_mode = cfg.dp.testing.spillage_guided.mode
+        self.quatity_guided_mode = cfg.dp.testing.quatity_guided.mode
+        self.goal_weight = cfg.dp.testing.goal_guided.weight
+        self.spillage_weight = cfg.dp.testing.spillage_guided.weight
+        self.quatity_weight = cfg.dp.testing.quatity_guided.weight
+        # self.guided_weight = cfg.dp.testing.guided_weight
         self.trigger = False
 
         # defime dimantion
@@ -383,7 +383,7 @@ class DiffusionPolicy(nn.Module):
         #     generator=generator)
 
         # fix init noise traj for check 
-        traj = np.load('./init_setting_for_val/traj_init.npy')
+        traj = np.load('./init_setting_for_val/init_traj_noise.npy')
         traj = torch.tensor(traj).to(self.device)
 
         all_grad = []
@@ -395,7 +395,7 @@ class DiffusionPolicy(nn.Module):
 
         if start_guidance :
 
-            if self.cfg.testing.guided_mode=="guided_clean":
+            if self.cfg.dp.testing.guided_mode=="guided_clean":
          
                 # traj_guided.requires_grad=True
                 for t in scheduler.timesteps:
@@ -412,7 +412,7 @@ class DiffusionPolicy(nn.Module):
                     traj_guided_next = traj_guided_next.detach().requires_grad_(True)
 
                     # Compute gradient
-                    if t<=self.cfg.testing.start_guided_iteration:                    
+                    if t<=self.cfg.dp.testing.start_guided_iteration:                    
                 
                         with torch.enable_grad():
 
@@ -453,14 +453,14 @@ class DiffusionPolicy(nn.Module):
                 guided_traj = traj_guided
                 guided_traj[condition_mask] = condition_data[condition_mask]  
 
-            elif self.cfg.testing.guided_mode=="guided_noise":
+            elif self.cfg.dp.testing.guided_mode=="guided_noise":
                 print("in guided_noise")
                 for t in scheduler.timesteps:
 
                     traj_guided[condition_mask] = condition_data[condition_mask]
                     temp_traj = traj_guided.clone().detach().requires_grad_(True)
 
-                    if t<=self.cfg.testing.start_guided_iteration:                
+                    if t<=self.cfg.dp.testing.start_guided_iteration:                
                         
                         with torch.enable_grad():
                             spillage_prob= self.spillage_predict(temp_traj, torch.tensor(obs_in).float().to(self.device))
@@ -484,7 +484,7 @@ class DiffusionPolicy(nn.Module):
                 guided_traj = traj_guided
 
         # calaulate original trajectory
-        # if self.cfg.check_traj == True or start_guidance == False :
+        # if self.cfg.dp.check_traj == True or start_guidance == False :
         # ori trajectory
         for t in scheduler.timesteps:
             # 1. apply conditioning
@@ -498,14 +498,14 @@ class DiffusionPolicy(nn.Module):
                 generator=generator
                 ).prev_sample
             
-            if t<=self.cfg.testing.start_guided_iteration:
+            if t<=self.cfg.dp.testing.start_guided_iteration:
                 show_ori_traj.append(traj.to("cpu"))     
 
         traj[condition_mask] = condition_data[condition_mask] 
 
 
         # for show trajectory
-        if self.cfg.check_traj == True and start_guidance :
+        if self.cfg.dp.check_traj == True and start_guidance :
             
             start = self.n_obs_steps-1
             end = start + self.n_action_steps
@@ -545,7 +545,7 @@ class DiffusionPolicy(nn.Module):
         cond_data = torch.zeros(size=(obs.shape[0], self.horizon, self.action_dim), device=self.device, dtype=torch.float32)
         cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
         
-        if self.cfg.testing.guided_mode=="post_processing":
+        if self.cfg.dp.testing.guided_mode=="post_processing":
             print("in opt")
             nsample, n_ori_traj, show_ori_traj, show_guided_traj = self.conditional_sample(
                 cond_data, 
@@ -563,12 +563,12 @@ class DiffusionPolicy(nn.Module):
             traj = nsample[...,:self.action_dim]
             ori_traj = traj.clone()
        
-            self.trigger = self.cfg.guidance
+            self.trigger = self.cfg.dp.guidance
             opt_grad_weight = self.spillage_weight
 
             if self.trigger :
                 for t in scheduler.timesteps:
-                    if t<=self.cfg.testing.start_guided_iteration:
+                    if t<=self.cfg.dp.testing.start_guided_iteration:
                         with torch.enable_grad():
                             traj = traj.detach().requires_grad_(True)
                     
@@ -588,7 +588,7 @@ class DiffusionPolicy(nn.Module):
                 ori_action_pred = _denormalize(ori_traj, self.input_max, self.input_min, self.input_mean)
 
                 # for show traj
-                if self.cfg.check_traj == True : 
+                if self.cfg.dp.check_traj == True : 
                     start = self.n_obs_steps-1
                     end = start + self.n_action_steps
                     show_trajectory(ori_traj=ori_action_pred[:, start:end], guided_traj=None, opt_traj=action_pred[:, start:end])

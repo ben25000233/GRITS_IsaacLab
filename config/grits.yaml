@@ -1,87 +1,77 @@
 camera_view:
   direction: back
   mode: single
-check_traj: true
-data:
-  food_item:
-  - brl
-  - brm
-  - brh
-  - col
-  - com
-  - coh
-  - jul
-  - jum
-  - juh
-  - mbl
-  - mbm
-  - mbh
-  - syl
-  - sym
-  - syh
-  - orl
+data_collection:
+  dp_read_name: brm_02.npy
+  dp_read_path: ./sample_trail/all_eepose_qua
+  dp_save_path: null
+dp:
+  batch_size: 1
+  check_traj: true
+  defaults:
+    task: food_scoop
+  food_item: brl brm brh col com coh jul jum juh mbl mbm mbh syl sym syh orl
+  guidance: true
+  horizon: 16
+  img_type: rgb
+  n_action_steps: 12
+  n_obs_steps: 5
+  num_inference_steps: 16
+  num_train_timesteps: 100
+  num_workers: 8
+  pre_processing:
+    image_range: standard
+    traj_range: dp
+  proprioception: false
   rootPath: /media/hcis-s22/data/isaaclab_dp_split_dataset
+  test_dataloader: null
+  testing:
+    ckpt_epoch: 300
+    device: cuda:0
+    goal_guided:
+      mode: sum_all_frame_weighted
+      weight: 1.0
+    guided_mode: guided_clean
+    guided_weight: 1
+    quatity_guided:
+      mode: AE
+      weight: 1.0
+    spillage_guided:
+      mode: mean
+      weight: 0.5
+    start_guided_iteration: 30
+  train_dataloader:
+    batch_size: 32
+    num_workers: 8
+  training:
+    device: cuda:0
+    gradient_accumulate_every: 1
+    lr: 0.0001
+    lr_scheduler: linear
+    lr_warmup_steps: 500
+    multi_gpu: true
+    num_cycles: 1
+    num_epochs: 600
+    save_epoch_range: 100
+  trial_name: 0901_sim
   trial_num: 5
-defaults:
-- task: food_scoop
+  val_dataloader:
+    batch_size: 1
+    num_workers: 8
+  validation: false
 food_property:
-  backup_ball_amount: 2
+  backup_ball_amount: 0
   ball_amount: 2
   friction: 0.5
-  init_ball_amount: 3
-  l_radius: 0.01
-  len: 4
+  l_radius: 0.013
+  len: 5
   mass: 0.01
-  r_radius: 0.01
+  r_radius: 0.013
   shape: sphere
-guidance: true
-horizon: 16
-img_type: rgb
-n_action_steps: 12
-n_obs_steps: 5
-num_inference_steps: 16
-num_train_timesteps: 100
 perturbation:
-  enable: true
-  time: 12
-  type: add
-pre_processing:
-  image_range: standard
-  traj_range: dp
-proprioception: false
-test_dataloader:
-  batch_size: 1
-  num_workers: 8
-testing:
-  ckpt_epoch: 300
-  device: cuda:0
-  goal_guided:
-    mode: sum_all_frame_weighted
-    weight: 1.0
-  guided_mode: guided_clean
-  guided_weight: 1
-  quatity_guided:
-    mode: AE
-    weight: 1.0
-  spillage_guided:
-    mode: mean
-    weight: 0.5
-  start_guided_iteration: 30
-train_dataloader:
-  batch_size: 32
-  num_workers: 8
-training:
-  device: cuda:0
-  gradient_accumulate_every: 1
-  lr: 0.0001
-  lr_scheduler: linear
-  lr_warmup_steps: 500
-  multi_gpu: true
-  num_cycles: 1
-  num_epochs: 600
-  save_epoch_range: 100
-trial_name: 0901_sim
-val_dataloader:
-  batch_size: 1
-  num_workers: 8
-validation: false
+  enable: false
+  time: 48
+  type: move
+spillage_data_collection:
+  save_path: /workspace/save_spillge_dataset
+  time: 0

@@ -57,7 +57,7 @@ from pyconfigparser import configparser
 
 
 class Spillage_DataCollection():
-    def __init__(self, mean_eepose_qua, init_pose = None, food_info = None, sim_dt = 1/240):
+    def __init__(self, mean_eepose_qua, init_pose = None, sim_dt = 1/240):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
        
@@ -79,18 +79,20 @@ class Spillage_DataCollection():
         self.ref_bowl = np.load("./ref_pcd/small_bowl_pcd.npy")
         self.pcd_offset = np.load("./ref_pcd/small_real_tool_offset.npy")
    
-        self.config_file = "./config/spillage_collect_time.yaml"
+        # self.config_file = "./config/spillage_collect_time.yaml"
 
-        with open(self.config_file, 'r') as file:
-            self.config = yaml.safe_load(file)
+        # with open(self.config_file, 'r') as file:
+        #     self.config = yaml.safe_load(file)
 
-        self.count = int(self.config['count'])
-        count = int(self.count) + 1
-        self.config['count'] = count
+        
 
-        food_info_path = "./config/food_info.yaml"
+        food_info_path = "./config/grits.yaml"
         with open(food_info_path, 'r') as file:
-            self.food_info = yaml.safe_load(file)
+            self.cfg = yaml.safe_load(file)
+
+        self.count = int(self.cfg['data_collection']["spillage"]['time'])
+        count = int(self.count) + 1
+        self.cfg['data_collection']["spillage"]['time'] = count
 
 
         self.pcd_functions = Pcd_functions()
@@ -282,7 +284,7 @@ class Spillage_DataCollection():
         # mix_all_pcd[:, 3] = 2
         # ckeck_pcd = np.concatenate(( mix_all_pcd, real_pcd), axis=0)
         # check_nor_pcd = np.concatenate(( mix_all_nor_pcd, nor_real_pcd), axis=0)
-        self.pcd_functions.check_pcd_color(mix_all_nor_pcd)
+        # self.pcd_functions.check_pcd_color(mix_all_nor_pcd)
         # self.pcd_functions.check_pcd_color(check_nor_pcd)
         # simulation_app.close()
 
@@ -489,7 +491,7 @@ class Spillage_DataCollection():
         binary_spillage = self.functions.list_to_nparray(self.binary_spillage)
         binary_scoop = self.functions.list_to_nparray(self.binary_scoop)
 
-        # r_radius, l_radius, mass, friction = self.food_info
+        # r_radius, l_radius, mass, friction = self.cfg
 
         # if sum(binary_spillage) > 2 :
         #     weight_spillage = np.ones(8)
@@ -516,11 +518,11 @@ class Spillage_DataCollection():
             'scoop_amount': scoop_amount,
             'scoop_vol': scoop_vol,
             'binary_scoop' : binary_scoop,
-            'r_radius' : self.food_info["r_radius"],
-            'l_radius' :self.food_info["l_radius"],
-            'mass' : self.food_info["mass"],
-            'friction' : self.food_info["friction"],
-            'shape' : self.food_info["shape"],
+            'r_radius' : self.cfg['spillage_data_collection']['food_property']["r_radius"],
+            'l_radius' :self.cfg['spillage_data_collection']['food_property']["l_radius"],
+            'mass' : self.cfg['spillage_data_collection']['food_property']["mass"],
+            'friction' : self.cfg['spillage_data_collection']['food_property']["friction"],
+            'shape' : self.cfg['spillage_data_collection']['food_property']["shape"],
             'amount' : self.init_amount,
         }
 
@@ -530,7 +532,7 @@ class Spillage_DataCollection():
         import os 
         print("store data")
         # output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/8_26_all_sphere/"
-        output_dir = "/media/hcis-s22/data/isaaclab_spillage_dataset/1010_sphere/"
+        output_dir = self.cfg["data_collection"]['spillage']['save_path']
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -551,7 +553,7 @@ class Spillage_DataCollection():
         spillage_mask = np.logical_or(z_pose < 0, y_pose > -0.02)
         current_spillage = np.count_nonzero(spillage_mask)
 
-        scoop_mask = np.logical_or(z_pose > 0.14, np.logical_and(z_pose > 0, y_pose > 0))
+        scoop_mask = np.logical_or(z_pose > 0.12, np.logical_and(z_pose > 0, y_pose > 0))
         scoop_amount = np.count_nonzero(scoop_mask)
 
         if reset == 1:
@@ -564,18 +566,18 @@ class Spillage_DataCollection():
          
             spillage_amount = current_spillage - self.pre_spillage[env_index]
             
-            if self.food_info["shape"] == "sphere":
-                spillage_vol = spillage_amount * (self.food_info["r_radius"]**3)
-                scoop_vol = scoop_amount * (self.food_info["r_radius"]**3)
-            elif self.food_info["shape"] == "cylinder":
-                spillage_vol = spillage_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"])
-                scoop_vol = scoop_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"])
-            elif self.food_info["shape"] == "cube":
-                spillage_vol = spillage_amount * (self.food_info["r_radius"]**3)
-                scoop_vol = scoop_amount * (self.food_info["r_radius"]**3)
-            elif self.food_info["shape"] == "cone":
-                spillage_vol = spillage_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"] / 3)
-                scoop_vol = scoop_amount * (self.food_info["r_radius"]**2 * self.food_info["l_radius"] / 3)
+            if self.cfg['spillage_data_collection']['food_property']["shape"] == "sphere":
+                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
+                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
+            elif self.cfg['food_property']["shape"] == "cylinder":
+                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"])
+                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"])
+            elif self.cfg['spillage_data_collection']['food_property']["shape"] == "cube":
+                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
+                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
+            elif self.cfg['spillage_data_collection']['food_property']["shape"] == "cone":
+                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"] / 3)
+                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"] / 3)
             
             if int(spillage_amount) == 0:
                 self.binary_spillage[env_index].append(0)
@@ -609,8 +611,8 @@ def main():
     sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
     # Set main camera
-    # sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])
-    sim.set_camera_view([1, -0.0, 0.5], [0.455, -0.11, 0.03])
+    sim.set_camera_view([1.5, 0, 0.8], [0.0, 0.0, 0.0])
+    # sim.set_camera_view([1, -0.0, 0.5], [0.455, -0.11, 0.03])
     # Design scene
     scene_cfg = TableTopSceneCfg(num_envs=args_cli.num_envs, env_spacing=2.0)
  
@@ -635,7 +637,7 @@ def main():
     ee_goals = np.load("./sample_trail/mean/mean_pose.npy")[(start_step + 1) : ]
 
 
-    env = Spillage_DataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, food_info = None, sim_dt = sim_dt)
+    env = Spillage_DataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, sim_dt = sim_dt)
     env.run_simulator(sim, scene)
 
 
