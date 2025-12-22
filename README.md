@@ -44,7 +44,7 @@ From inside the `isaaclab_grits` directory, start the container build process:
 ---
 
 ### 2. Run Docker Container (Headless Mode)
-
+Please update the mounted directory path to match your local folder. 
 ```bash
 docker run \
     --name spillage_training \
@@ -115,7 +115,10 @@ Modify experiment parameters in:
 ```
 config/grits.yaml
 ```
-
+IsaacLab_env setting functions:
+```
+function/Env_functions.py
+```
 ---
 
 ## ▶️ Running the Simulation

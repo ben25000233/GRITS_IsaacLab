@@ -2,9 +2,13 @@ camera_view:
   direction: back
   mode: single
 data_collection:
-  dp_read_name: brm_02.npy
-  dp_read_path: ./sample_trail/all_eepose_qua
-  dp_save_path: null
+  dp:
+    read_name: brm_02.npy
+    read_path: ./sample_trail/all_eepose_qua
+    save_path: null
+  spillage:
+    save_path: /workspace/save_spillge_dataset
+    time: 0
 dp:
   batch_size: 1
   check_traj: true
@@ -63,15 +67,12 @@ food_property:
   backup_ball_amount: 0
   ball_amount: 2
   friction: 0.5
-  l_radius: 0.013
+  l_radius: 0.008
   len: 5
   mass: 0.01
-  r_radius: 0.013
+  r_radius: 0.008
   shape: sphere
 perturbation:
   enable: false
   time: 48
   type: move
-spillage_data_collection:
-  save_path: /workspace/save_spillge_dataset
-  time: 0

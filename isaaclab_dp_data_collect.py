@@ -454,9 +454,9 @@ if __name__ == "__main__":
     cfg = configparser.get_config(config_dir = config_dir, file_name=config_file_name) 
   
 
-    root_dir = cfg["data_collection"]["dp_read_path"]  # Change this to your folder path
+    root_dir = cfg["data_collection"]["dp"]["read_path"]  # Change this to your folder path
     # br, co, ju, mb, sy, orl
-    subfolder = cfg["data_collection"]["dp_read_name"]
+    subfolder = cfg["data_collection"]["dp"]["read_name"]
 
     subfolder_path = os.path.join(root_dir, subfolder)
     issac = main(traj = np.load(subfolder_path), name = str(subfolder)[:-4])

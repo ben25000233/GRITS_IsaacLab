@@ -518,11 +518,11 @@ class Spillage_DataCollection():
             'scoop_amount': scoop_amount,
             'scoop_vol': scoop_vol,
             'binary_scoop' : binary_scoop,
-            'r_radius' : self.cfg['spillage_data_collection']['food_property']["r_radius"],
-            'l_radius' :self.cfg['spillage_data_collection']['food_property']["l_radius"],
-            'mass' : self.cfg['spillage_data_collection']['food_property']["mass"],
-            'friction' : self.cfg['spillage_data_collection']['food_property']["friction"],
-            'shape' : self.cfg['spillage_data_collection']['food_property']["shape"],
+            'r_radius' : self.cfg['food_property']["r_radius"],
+            'l_radius' :self.cfg['food_property']["l_radius"],
+            'mass' : self.cfg['food_property']["mass"],
+            'friction' : self.cfg['food_property']["friction"],
+            'shape' : self.cfg['food_property']["shape"],
             'amount' : self.init_amount,
         }
 
@@ -566,18 +566,18 @@ class Spillage_DataCollection():
          
             spillage_amount = current_spillage - self.pre_spillage[env_index]
             
-            if self.cfg['spillage_data_collection']['food_property']["shape"] == "sphere":
-                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
-                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
+            if self.cfg['food_property']["shape"] == "sphere":
+                spillage_vol = spillage_amount * (self.cfg['food_property']["r_radius"]**3)
+                scoop_vol = scoop_amount * (self.cfg['food_property']["r_radius"]**3)
             elif self.cfg['food_property']["shape"] == "cylinder":
-                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"])
-                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"])
-            elif self.cfg['spillage_data_collection']['food_property']["shape"] == "cube":
-                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
-                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**3)
-            elif self.cfg['spillage_data_collection']['food_property']["shape"] == "cone":
-                spillage_vol = spillage_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"] / 3)
-                scoop_vol = scoop_amount * (self.cfg['spillage_data_collection']['food_property']["r_radius"]**2 * self.cfg['spillage_data_collection']['food_property']["l_radius"] / 3)
+                spillage_vol = spillage_amount * (self.cfg['food_property']["r_radius"]**2 * self.cfg['food_property']["l_radius"])
+                scoop_vol = scoop_amount * (self.cfg['food_property']["r_radius"]**2 * self.cfg['food_property']["l_radius"])
+            elif self.cfg['food_property']["shape"] == "cube":
+                spillage_vol = spillage_amount * (self.cfg['food_property']["r_radius"]**3)
+                scoop_vol = scoop_amount * (self.cfg['food_property']["r_radius"]**3)
+            elif self.cfg['food_property']["shape"] == "cone":
+                spillage_vol = spillage_amount * (self.cfg['food_property']["r_radius"]**2 * self.cfg['food_property']["l_radius"] / 3)
+                scoop_vol = scoop_amount * (self.cfg['food_property']["r_radius"]**2 * self.cfg['food_property']["l_radius"] / 3)
             
             if int(spillage_amount) == 0:
                 self.binary_spillage[env_index].append(0)
