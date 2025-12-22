@@ -426,29 +426,6 @@ class predict_spillage:
         )
 
 
-        
-
-        # val_index = np.random.randint(
-        #     0, len(filename_list), int(len(filename_list) * self.configs["val_ratio"])
-        # )
-      
-       
-        # for index in range(len(filename_list)):
-        #     if index in val_index:
-        #         val_filename_list.append(filename_list[index])
-        #     else :
-        #         train_filename_list.append(filename_list[index])
-
-        # for index in val_index:
-        #     val_filename_list.append(filename_list[index])
-
-
-        # # move all val files from filename list
-        # while val_index.size > 0:
-        #     filename_list.pop(val_index[0])
-        #     val_index = np.where(val_index > val_index[0], val_index - 1, val_index)
-        #     val_index = val_index[1:]
-
        
         print("Initial finished")
         # self.check_data(train_filename_list, val_filename_list)
@@ -553,30 +530,5 @@ class predict_spillage:
         plt.ylabel("Frequency")
         plt.show()
 
-
-        '''
-        # Apply PCA
-        # Combine datasets and label them
-        combined_data = np.vstack([np.array(train_property), np.array(val_property)])
-        labels = np.array([0]*len(np.array(train_property)) + [1]*len(np.array(val_property)))  # 0 for dataset1, 1 for dataset2
-
-        pca = PCA(n_components=2)
-        pca_result = pca.fit_transform(combined_data)
-
-        # Separate the PCA results
-        pca_dataset1 = pca_result[labels == 0]
-        pca_dataset2 = pca_result[labels == 1]
-
-        # Scatter plot
-        plt.scatter(pca_dataset1[:, 0], pca_dataset1[:, 1], alpha=0.5, label="Dataset 1", color="blue")
-        plt.scatter(pca_dataset2[:, 0], pca_dataset2[:, 1], alpha=0.5, label="Dataset 2", color="orange")
-        # plt.scatter(overlap[:, 0], overlap[:, 1], alpha=0.5, label="Overlap", color="green")
-        plt.title("PCA Scatter Plot of Two Datasets")
-        plt.xlabel("PC1")
-        plt.ylabel("PC2")
-        plt.legend()
-        plt.show()
-        
-        '''
 
     

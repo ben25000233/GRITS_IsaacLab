@@ -67,7 +67,8 @@ docker run \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
     -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
     -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_dataset \
     isaac-lab-base
 ```
 
@@ -87,6 +88,7 @@ docker run \
     --entrypoint bash \
     -it \
     --gpus all \
+    --shm-size="24g" \
     --rm \
     --network=host \
     -e "ACCEPT_EULA=Y" \
@@ -103,7 +105,8 @@ docker run \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
     -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
     -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_dataset \
     isaac-lab-base
 ```
 
@@ -131,6 +134,11 @@ python isaaclab_dp_data_collect.py
 ### Spillage Dataset Collection
 ```bash
 python isaaclab_spillage_data_collect.py
+```
+
+### Train spillge predictor
+```bash
+python dynamic_training.py
 ```
 
 ### Run GRITS
