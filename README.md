@@ -1,105 +1,136 @@
 # 🛠️ IsaacLab Spoon Scene Setup
 
-This guide provides step-by-step instructions for building the environment, setting parameters, and running the `interactivate_scene.py` script with a **custom spoon and bowl** configuration in IsaacLab.
+This repository provides step-by-step instructions for setting up an IsaacLab environment and running simulations with a **custom spoon and bowl** configuration. It covers environment preparation, Docker usage, parameter configuration, and script execution for data collection and GRITS experiments.
 
 ---
 
 ## 📦 Environment Setup
 
-1. **Install IsaacLab**  
-   Make sure the **IsaacLab** package is installed and properly configured.
+### 1. Install IsaacLab
+Ensure that **IsaacLab** is correctly installed and configured on your system.
 
-2. **CUDA Version**  
-   - Required: **CUDA 12.1** for IsaacLab
+### 2. CUDA Version
+- **Required:** CUDA **12.1**
 
-3. **PointNet++ Build Fix (for CUDA 12.1)**  
-   When installing **PointNet++** under CUDA 12.1, update the architecture list in  
-   `Pointnet2_PyTorch/pointnet2_ops_lib/setup.py`:
+### 3. PointNet++ Build Fix (CUDA 12.1)
+When installing **PointNet++** with CUDA 12.1, you must update the CUDA architecture list to avoid build errors.
 
-   ```python
-   # Original
-   os.environ["TORCH_CUDA_ARCH_LIST"] = "3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5;8.6;8.9" 
+Edit the following file:
+```
+Pointnet2_PyTorch/pointnet2_ops_lib/setup.py
+```
 
-   # Updated (remove 3.7+PTX)
-   os.environ["TORCH_CUDA_ARCH_LIST"] = "5.0;6.0;6.1;6.2;7.0;7.5;8.6;8.9"
-   ```
+Update the architecture list as shown below:
+
+```python
+# Original
+os.environ["TORCH_CUDA_ARCH_LIST"] = "3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5;8.6;8.9"
+
+# Updated (remove 3.7+PTX)
+os.environ["TORCH_CUDA_ARCH_LIST"] = "5.0;6.0;6.1;6.2;7.0;7.5;8.6;8.9"
+```
 
 ---
 
 ## 🐳 Build and Run Docker
 
-1. **Build Docker Image** (inside `isaaclab_grits` folder)
-   ```bash
-   ./docker/container.py start
-   ```
+### 1. Build the Docker Image
+From inside the `isaaclab_grits` directory, start the container build process:
 
-2. **Run Docker Container**
-   ```bash
-   # without gui
-	docker run \
-	    --name spillage_training \
-	    --entrypoint bash \
-	    -it \
-	    --gpus all \
-	    --rm \
-	    --shm-size="24g" \
-	    -e "ACCEPT_EULA=Y" \
-	    -e "PRIVACY_CONSENT=Y" \
-	    -e "DISPLAY=" \
-	    -e "USE_EGL=1" \
-	    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
-	    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
-	    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
-	    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
-	    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
-	    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
-	    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
-	    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-	    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-	    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-	    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
-	    isaac-lab-base
-   ```
-   ```bash
-   # for gui in docker
-	xhost +local:docker
-	#run docker
-	docker run \
-	    --name isaac-lab \
-	    --entrypoint bash \
-	    -it \
-	    --gpus all \
-	    --rm \
-	    --network=host \
-	    -e "ACCEPT_EULA=Y" \
-	    -e "PRIVACY_CONSENT=Y" \
-	    -e "DISPLAY=$DISPLAY" \
-	    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-	    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
-	    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
-	    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
-	    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
-	    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
-	    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
-	    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
-	    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-	    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-	    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-	    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
-	    isaac-lab-base
-   ```
+```bash
+./docker/container.py start
+```
+
+---
+
+### 2. Run Docker Container (Headless Mode)
+
+```bash
+docker run \
+    --name spillage_training \
+    --entrypoint bash \
+    -it \
+    --gpus all \
+    --rm \
+    --shm-size="24g" \
+    -e "ACCEPT_EULA=Y" \
+    -e "PRIVACY_CONSENT=Y" \
+    -e "DISPLAY=" \
+    -e "USE_EGL=1" \
+    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
+    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
+    isaac-lab-base
+```
+
+---
+
+### 3. Run Docker Container (GUI Mode)
+
+Enable X11 access:
+```bash
+xhost +local:docker
+```
+
+Run the container:
+```bash
+docker run \
+    --name isaac-lab \
+    --entrypoint bash \
+    -it \
+    --gpus all \
+    --rm \
+    --network=host \
+    -e "ACCEPT_EULA=Y" \
+    -e "PRIVACY_CONSENT=Y" \
+    -e "DISPLAY=$DISPLAY" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+    -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+    -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+    -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+    -v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+    -v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+    -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+    -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+    -v ~/docker/isaac-sim/documents:/root/Documents:rw \
+    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
+    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/spillage_dataset \
+    isaac-lab-base
+```
 
 ---
 
 ## ⚙️ Parameter Configuration
 
-> *(Add parameter details here once finalized — e.g., spoon size, bowl position, simulation speed, camera setup.)*
+Modify experiment parameters in:
+```
+config/grits.yaml
+```
 
 ---
 
 ## ▶️ Running the Simulation
 
-Inside the container, run:
+### Diffusion Policy (DP) Demonstration Collection
+```bash
+python isaaclab_dp_data_collect.py
+```
+
+### Spillage Dataset Collection
+```bash
+python isaaclab_spillage_data_collect.py
+```
+
+### Run GRITS
 ```bash
 python grits_main.py
 ```
