@@ -13,7 +13,7 @@ from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 import math
 import os
 import numpy as np
-from dp_train_model import DiffusionPolicy, EMAModel, SingleObEncoder, MultiObEncoder
+from dp_model.model import DiffusionPolicy, EMAModel, SingleObEncoder, MultiObEncoder
 from argparse import ArgumentParser
 import copy
 from torch.utils.tensorboard import SummaryWriter
@@ -22,7 +22,8 @@ from torch.utils.tensorboard import SummaryWriter
 class FoodDataset(Dataset):
     def __init__(self, cfg, stage):
 
-        self.rootPath = cfg.data.rootPath
+        # self.rootPath = cfg.dp.rootPath
+        self.rootPath = "/workspace/dp_dataset"
         self.view = cfg.camera_view.mode
         self.direction = cfg.camera_view.direction
 
@@ -44,8 +45,8 @@ class FoodDataset(Dataset):
             obs_back = torch.load(self.obs[index][1])
             obs = torch.cat((obs_front, obs_back), dim=1)
         else:
-            obs = torch.load(self.obs[index])
-        traj = torch.load(self.traj[index])
+            obs = torch.load(self.obs[index], weights_only=True)
+        traj = torch.load(self.traj[index], weights_only=True)
         return obs, traj
 
 def train(cfg, 
@@ -65,8 +66,8 @@ def train(cfg,
         os.mkdir(tensorboard_dir)
     writer = SummaryWriter(tensorboard_dir)    
     
-    for epoch in range(start_epoch, cfg.training.num_epochs):
-        print('Epoch {}/{}'.format(epoch+1, cfg.training.num_epochs))
+    for epoch in range(start_epoch, cfg.dp.training.num_epochs):
+        print('Epoch {}/{}'.format(epoch+1, cfg.dp.training.num_epochs))
         print('-' * 10)
 
         # ---------------------------- Training -------------------------------
@@ -75,8 +76,8 @@ def train(cfg,
 
         for obs, traj in tqdm(train_dataloader):
             # to device
-            obs = obs.to(cfg.training.device, dtype=torch.float32)
-            traj = traj.to(cfg.training.device, dtype=torch.float32)
+            obs = obs.to(cfg.dp.training.device, dtype=torch.float32)
+            traj = traj.to(cfg.dp.training.device, dtype=torch.float32)
 
             optimizer.zero_grad()
             loss = diffusion_model.compute_loss((obs, traj))
@@ -97,8 +98,8 @@ def train(cfg,
         # add to tensorboard
         writer.add_scalar('training loss', epoch_loss, epoch+1)
 
-        if (epoch+1)%cfg.training.save_epoch_range==0:
-            if (epoch+1)>=cfg.training.save_epoch_range:
+        if (epoch+1)%cfg.dp.training.save_epoch_range==0:
+            if (epoch+1)>=cfg.dp.training.save_epoch_range:
                 torch.save({
                     'epoch': epoch,
                     'dp_state_dict': diffusion_model.state_dict(),
@@ -108,7 +109,7 @@ def train(cfg,
                     'loss': loss,
                     }, os.path.join(save_dir, 'epoch={}.pth'.format(epoch+1)))
         
-        if cfg.validation:
+        if cfg.dp.validation:
             # ---------------------------- Validation -------------------------------
             policy = ema
             policy.eval()
@@ -117,8 +118,8 @@ def train(cfg,
             with torch.no_grad():
                 for obs, traj in tqdm(val_dataloader):
                     # to device
-                    obs = obs.to(cfg.training.device, dtype=torch.float32)
-                    traj = traj.to(cfg.training.device, dtype=torch.float32)
+                    obs = obs.to(cfg.dp.training.device, dtype=torch.float32)
+                    traj = traj.to(cfg.dp.training.device, dtype=torch.float32)
                     _, pred_action = policy.predict_action((obs, traj))
                     # statistics
                     mse = torch.nn.functional.mse_loss(pred_action, traj)
@@ -158,7 +159,7 @@ class Print_Logger(object):
 def main():
 
     parser = ArgumentParser()
-    parser.add_argument("-c", "--config", default="dp_training.yaml")
+    parser.add_argument("-c", "--config", default="/grits.yaml")
     parser.add_argument("-r", "--restore", default=0)
     args = parser.parse_args()
     cfg = configparser.get_config(file_name=args.config)
@@ -166,7 +167,10 @@ def main():
     #--------------------#
     # create save folder #
     #--------------------#
-    output_dir = "experiments/{}".format(cfg.trial_name)
+    output_dir = "/workspace/dp_dataset/experiments/{}".format(cfg.dp.trial_name)
+    # output_dir = "/media/hcis-s22/data/isaaclab_dp_split_dataset/experiments/{}".format(cfg.dp.trial_name)
+    
+
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     sys.stdout = Print_Logger(os.path.join(output_dir, "log.txt"))
@@ -177,8 +181,8 @@ def main():
     train_set = FoodDataset(cfg, stage="train")
     train_dataloader = DataLoader(
         dataset=train_set, 
-        batch_size=cfg.train_dataloader.batch_size, 
-        num_workers=cfg.train_dataloader.num_workers, 
+        batch_size=cfg.dp.train_dataloader.batch_size, 
+        num_workers=cfg.dp.train_dataloader.num_workers, 
         shuffle=True,
         pin_memory=True,
         persistent_workers=True)
@@ -186,8 +190,8 @@ def main():
     val_set = FoodDataset(cfg, stage="val")
     val_dataloader = DataLoader(
         dataset=val_set, 
-        batch_size=cfg.val_dataloader.batch_size, 
-        num_workers=cfg.val_dataloader.num_workers, 
+        batch_size=cfg.dp.val_dataloader.batch_size, 
+        num_workers=cfg.dp.val_dataloader.num_workers, 
         shuffle=False,
         pin_memory=True,
         persistent_workers=True)
@@ -214,25 +218,25 @@ def main():
         obs_encoder,
         noise_scheduler
     )
-    diffusion_model.to(cfg.training.device) 
+    diffusion_model.to(cfg.dp.training.device) 
     ema = copy.deepcopy(diffusion_model)
-    ema.to(cfg.training.device)
+    ema.to(cfg.dp.training.device)
     ema_model = EMAModel(ema)
 
     #---------#
     # setting #
     #---------#    
     def lr_lambda(current_step):
-        num_training_steps=len(train_dataloader) * cfg.training.num_epochs # 293*600        
-        if current_step < cfg.training.lr_warmup_steps:
-            return float(current_step) / float(max(1, cfg.training.lr_warmup_steps))
-        progress = float(current_step - cfg.training.lr_warmup_steps) / float(max(1, num_training_steps - cfg.training.lr_warmup_steps))
-        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(cfg.training.num_cycles) * 2.0 * progress)))  
+        num_training_steps=len(train_dataloader) * cfg.dp.training.num_epochs # 293*600        
+        if current_step < cfg.dp.training.lr_warmup_steps:
+            return float(current_step) / float(max(1, cfg.dp.training.lr_warmup_steps))
+        progress = float(current_step - cfg.dp.training.lr_warmup_steps) / float(max(1, num_training_steps - cfg.dp.training.lr_warmup_steps))
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * float(cfg.dp.training.num_cycles) * 2.0 * progress)))  
     
         
     optimizer = optim.AdamW(
         diffusion_model.parameters(), 
-        lr=cfg.training.lr, betas=(0.95, 0.999), 
+        lr=cfg.dp.training.lr, betas=(0.95, 0.999), 
         eps=1.0e-8, 
         weight_decay=1.0e-6
     )

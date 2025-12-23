@@ -47,7 +47,7 @@ From inside the `isaaclab_grits` directory, start the container build process:
 Please update the mounted directory path to match your local folder. 
 ```bash
 docker run \
-    --name spillage_training \
+    --name GRITS \
     --entrypoint bash \
     -it \
     --gpus all \
@@ -67,8 +67,9 @@ docker run \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
     -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
     -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_dataset \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_spillage_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_spillage_dataset \
+    -v /media/hcis-s22/data/isaaclab_dp_split_dataset:/workspace/dp_dataset \
     isaac-lab-base
 ```
 
@@ -84,7 +85,7 @@ xhost +local:docker
 Run the container:
 ```bash
 docker run \
-    --name isaac-lab \
+    --name GRITS \
     --entrypoint bash \
     -it \
     --gpus all \
@@ -105,8 +106,9 @@ docker run \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
     -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
     -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_dataset \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_spillage_dataset \
+    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_spillage_dataset \
+    -v /media/hcis-s22/data/isaaclab_dp_split_dataset:/workspace/dp_dataset \
     isaac-lab-base
 ```
 

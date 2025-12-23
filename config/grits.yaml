@@ -10,11 +10,16 @@ data_collection:
     save_path: /workspace/save_spillge_dataset
     time: 0
 dp:
-  batch_size: 1
   check_traj: true
   defaults:
     task: food_scoop
-  food_item: brl brm brh col com coh jul jum juh mbl mbm mbh syl sym syh orl
+  food_item: ['brl', 'brm', 'brh', 
+              'col', 'com', 'coh', 
+              'jul', 'jum', 'juh', 
+              'mbl', 'mbm', 'mbh', 
+              'syl', 'sym', 'syh'
+              ]
+  trial_num: 5
   guidance: true
   horizon: 16
   img_type: rgb
@@ -22,13 +27,14 @@ dp:
   n_obs_steps: 5
   num_inference_steps: 16
   num_train_timesteps: 100
-  num_workers: 8
   pre_processing:
     image_range: standard
     traj_range: dp
   proprioception: false
   rootPath: /media/hcis-s22/data/isaaclab_dp_split_dataset
-  test_dataloader: null
+  test_dataloader: 
+    batch_size: 1
+    num_workers: 8
   testing:
     ckpt_epoch: 300
     device: cuda:0
@@ -42,13 +48,13 @@ dp:
       weight: 1.0
     spillage_guided:
       mode: mean
-      weight: 0.5
+      weight: 1.0
     start_guided_iteration: 30
   train_dataloader:
-    batch_size: 32
-    num_workers: 8
+    batch_size: 64
+    num_workers: 16
   training:
-    device: cuda:0
+    device: cuda:1
     gradient_accumulate_every: 1
     lr: 0.0001
     lr_scheduler: linear
@@ -57,12 +63,12 @@ dp:
     num_cycles: 1
     num_epochs: 600
     save_epoch_range: 100
-  trial_name: 0901_sim
-  trial_num: 5
+  trial_name: 1223_sim
   val_dataloader:
     batch_size: 1
     num_workers: 8
   validation: false
+
 food_property:
   backup_ball_amount: 0
   ball_amount: 2

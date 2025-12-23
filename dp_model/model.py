@@ -209,7 +209,7 @@ class DiffusionPolicy(nn.Module):
         self.obs_feature_dim = obs_feature_dim
 
         # normalization
-        input_range = torch.load('input_range_sim.pt')
+        input_range = torch.load('input_range_sim.pt', weights_only=True)
         self.input_max = input_range[0,:]
         self.input_min = input_range[1,:]
         self.input_mean = input_range[2,:]
