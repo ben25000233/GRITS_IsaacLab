@@ -3,9 +3,9 @@ camera_view:
   mode: single
 data_collection:
   dp:
-    read_name: brm_02.npy
+    read_name: brm_02
     read_path: ./sample_trail/all_eepose_qua
-    save_path: null
+    save_path: /workspace/isaaclab_dp_dataset
   spillage:
     save_path: /workspace/save_spillge_dataset
     time: 0
@@ -13,13 +13,22 @@ dp:
   check_traj: true
   defaults:
     task: food_scoop
-  food_item: ['brl', 'brm', 'brh', 
-              'col', 'com', 'coh', 
-              'jul', 'jum', 'juh', 
-              'mbl', 'mbm', 'mbh', 
-              'syl', 'sym', 'syh'
-              ]
-  trial_num: 5
+  food_item:
+  - brl
+  - brm
+  - brh
+  - col
+  - com
+  - coh
+  - jul
+  - jum
+  - juh
+  - mbl
+  - mbm
+  - mbh
+  - syl
+  - sym
+  - syh
   guidance: true
   horizon: 16
   img_type: rgb
@@ -32,7 +41,7 @@ dp:
     traj_range: dp
   proprioception: false
   rootPath: /media/hcis-s22/data/isaaclab_dp_split_dataset
-  test_dataloader: 
+  test_dataloader:
     batch_size: 1
     num_workers: 8
   testing:
@@ -54,7 +63,7 @@ dp:
     batch_size: 64
     num_workers: 16
   training:
-    device: cuda:1
+    device: cuda:0
     gradient_accumulate_every: 1
     lr: 0.0001
     lr_scheduler: linear
@@ -64,11 +73,11 @@ dp:
     num_epochs: 600
     save_epoch_range: 100
   trial_name: 1223_sim
+  trial_num: 5
   val_dataloader:
     batch_size: 1
     num_workers: 8
   validation: false
-
 food_property:
   backup_ball_amount: 0
   ball_amount: 2

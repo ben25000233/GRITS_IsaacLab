@@ -3,12 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim.lr_scheduler as lr_sched
-from dynamics_model.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetFPModule, PointnetSAModule
+from spillage_predictor.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetFPModule, PointnetSAModule
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision import transforms
 
-import dynamics_model.Pointnet2_PyTorch.pointnet2.data.data_utils as d_utils
-from dynamics_model.Pointnet2_PyTorch.pointnet2.data.ModelNet40Loader import ModelNet40Cls
+import spillage_predictor.Pointnet2_PyTorch.pointnet2.data.data_utils as d_utils
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.data.ModelNet40Loader import ModelNet40Cls
 
 
 def set_bn_momentum_default(bn_momentum):

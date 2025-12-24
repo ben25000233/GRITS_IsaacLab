@@ -3,9 +3,9 @@ from collections import namedtuple
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from dynamics_model.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetFPModule, PointnetSAModuleMSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetFPModule, PointnetSAModuleMSG
 
-from dynamics_model.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_sem import PointNet2SemSegSSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_sem import PointNet2SemSegSSG
 
 
 class PointNet2SemSegMSG(PointNet2SemSegSSG):

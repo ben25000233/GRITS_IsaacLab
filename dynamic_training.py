@@ -2,16 +2,16 @@ from __future__ import print_function
 import argparse
 import yaml
 
-from dynamics_model.trainers.test_spillage import selfsupervised
-from dynamics_model.trainers.predict_scoop import predict_scoop
-from dynamics_model.trainers.predict_spillage import predict_spillage
+from spillage_predictor.trainers.test_spillage import selfsupervised
+from spillage_predictor.trainers.predict_scoop import predict_scoop
+from spillage_predictor.trainers.predict_spillage import predict_spillage
 
 
 if __name__ == "__main__":
 
     # Load the config file
     parser = argparse.ArgumentParser(description="Sensor fusion model")
-    parser.add_argument("--config", help="YAML config file", default = "dynamics_model/configs/training_default.yaml")
+    parser.add_argument("--config", help="YAML config file", default = "spillage_predictor/configs/training_default.yaml")
     parser.add_argument("--notes", default="", help="run notes")
     parser.add_argument("--dev", type=bool, default=False, help="run in dev mode")
     parser.add_argument(

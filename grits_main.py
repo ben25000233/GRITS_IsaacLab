@@ -39,7 +39,7 @@ from isaaclab.sensors import CameraCfg, TiledCameraCfg
 from isaaclab.sim.converters import UrdfConverterCfg
 
 
-from dynamics_model.test_spillage import spillage_predictor
+from spillage_predictor.test_spillage import spillage_predictor
 from dp_model.predict import LfD
 from pytorch3d.transforms import matrix_to_rotation_6d, quaternion_to_matrix
 from pyconfigparser import configparser
@@ -51,9 +51,6 @@ import json
 from functions.pcd_functions import Pcd_functions
 from functions.Env_functions import TableTopSceneCfg, Env_functions
 from functions.functions import functions
-
-np.random.seed(42)
-torch.manual_seed(42)
 
 
 class Grits():
@@ -487,9 +484,9 @@ class Grits():
         shape = self.cfg["food_property"]["shape"]
         weight = self.cfg.dp.testing.spillage_guided.weight
 
-
-        with open("./init_setting_for_val/noise_pairs.yaml", "r") as stream:
-            noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
+        # fixed policy noise setting for validation
+        # with open("./init_setting_for_val/noise_pairs.yaml", "r") as stream:
+        #     noise_cfg = yaml.load(stream, Loader=yaml.FullLoader)
 
         
         binary_predict_acc = [1 if prob >= 0.5 else 0 for prob in self.predict_acc]

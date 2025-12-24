@@ -9,9 +9,9 @@ import torch.optim as optim
 import os
 from tqdm import tqdm
 
-from dynamics_model.models.sensor_fusion import Dynamics_model
+from spillage_predictor.models.sensor_fusion import Dynamics_model
 
-from dynamics_model.dataloaders import MultimodalManipulationDataset
+from spillage_predictor.dataloaders import MultimodalManipulationDataset
 from torch.utils.data import DataLoader
 import copy
 from torch.utils.tensorboard import SummaryWriter
@@ -170,7 +170,8 @@ class predict_spillage:
             
             
             if (i_epoch + 1) % 1 == 0:
-                FILE = f"/workspace/train_dataset/spillage_ckpt/epoch{i_epoch}.pt"
+                FILE = f"/workspace/grits/spillage_predictor/spillage_predictor_ckpt/epoch{i_epoch}.pt"
+
                 torch.save(best_model_wts, FILE)
 
         self.writer.close()

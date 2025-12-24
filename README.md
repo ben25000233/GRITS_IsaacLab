@@ -43,8 +43,32 @@ From inside the `isaaclab_grits` directory, start the container build process:
 
 ---
 
-### 2. Run Docker Container (Headless Mode)
-Please update the mounted directory path to match your local folder. 
+### 2. folder mounted
+Please mount the **`isaaclab_grits`** directory to a folder on your local machine.
+
+Recommended mount paths inside the container:
+
+- **GRITS checkpoints**
+  ```
+  dp_ckpt → /workspace/dp_ckpt
+  ```
+
+- **Spillage predictor datasets**
+  ```
+  train_spillage_dataset → /workspace/train_spillage_dataset
+  val_spillage_dataset   → /workspace/val_spillage_dataset
+  ```
+
+- **Diffusion Policy training dataset**
+  ```
+  isaaclab_dp_split_dataset → /workspace/dp_dataset
+  ```
+
+⚠️ Make sure to modify the mounted folder paths according to your local directory structure.
+---
+
+### 3-1. Run Docker Container (Headless Mode)
+
 ```bash
 docker run \
     --name GRITS \
@@ -65,17 +89,13 @@ docker run \
     -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
     -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_spillage_dataset \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_spillage_dataset \
-    -v /media/hcis-s22/data/isaaclab_dp_split_dataset:/workspace/dp_dataset \
+    -v {all mounted folder}
     isaac-lab-base
 ```
 
 ---
 
-### 3. Run Docker Container (GUI Mode)
+### 3-2. Run Docker Container (GUI Mode)
 
 Enable X11 access:
 ```bash
@@ -104,11 +124,7 @@ docker run \
     -v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
     -v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
     -v ~/docker/isaac-sim/documents:/root/Documents:rw \
-    -v /home/hcis-s22/benyang/scoop-env/isaaclab_grits:/workspace/grits \
-    -v /media/hcis-s22/data/dp_experiments/0901_sim/ckpt:/workspace/dp_ckpt \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train:/workspace/train_spillage_dataset \
-    -v /media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_validation:/workspace/val_spillage_dataset \
-    -v /media/hcis-s22/data/isaaclab_dp_split_dataset:/workspace/dp_dataset \
+    -v {all mounted folder}
     isaac-lab-base
 ```
 
@@ -141,6 +157,21 @@ python isaaclab_spillage_data_collect.py
 ### Train spillge predictor
 ```bash
 python dynamic_training.py
+```
+
+### Train Diffusion Policy
+
+Before running training, ensure the following code is enabled in `dp_training.py`:
+
+```python
+from spillage_predictor.test_spillage import spillage_predictor
+...
+self.spillage_predictor = spillage_predictor()
+```
+
+Run:
+```bash
+python dp_training.py
 ```
 
 ### Run GRITS

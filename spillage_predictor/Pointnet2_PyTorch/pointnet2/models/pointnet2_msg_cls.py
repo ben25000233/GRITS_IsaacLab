@@ -2,9 +2,9 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from dynamics_model.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetSAModule, PointnetSAModuleMSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetSAModule, PointnetSAModuleMSG
 
-from dynamics_model.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_cls import PointNet2ClassificationSSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_cls import PointNet2ClassificationSSG
 
 
 class PointNet2ClassificationMSG(PointNet2ClassificationSSG):

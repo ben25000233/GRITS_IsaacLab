@@ -1,11 +1,11 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from dynamics_model.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetFPModule, PointnetSAModule
+from spillage_predictor.Pointnet2_PyTorch.pointnet2_ops_lib.pointnet2_ops.pointnet2_modules import PointnetFPModule, PointnetSAModule
 from torch.utils.data import DataLoader
 
-from dynamics_model.Pointnet2_PyTorch.pointnet2.data import Indoor3DSemSeg
-from dynamics_model.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_cls import PointNet2ClassificationSSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.data import Indoor3DSemSeg
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_cls import PointNet2ClassificationSSG
 
 
 class PointNet2SemSegSSG(PointNet2ClassificationSSG):

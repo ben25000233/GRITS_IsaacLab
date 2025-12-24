@@ -99,7 +99,7 @@ RUN echo "export ISAACLAB_PATH=${ISAACLAB_PATH}" >> ${HOME}/.bashrc && \
 RUN /isaac-sim/python.sh -m pip install setuptools wheel build poetry-core
 
 # Install PointNet++ ops (editable mode)
-COPY ../dynamics_model/Pointnet2_PyTorch/pointnet2_ops_lib/. ./pointnet2_ops_lib/
+COPY ../spillage_predictor/Pointnet2_PyTorch/pointnet2_ops_lib/. ./pointnet2_ops_lib/
 RUN /isaac-sim/python.sh -m pip install -e ./pointnet2_ops_lib/
 
 # Install additional Python requirements

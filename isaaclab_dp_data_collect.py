@@ -44,14 +44,15 @@ import os
 
 
 class Dp_dataCollection():
-    def __init__(self, mean_eepose_qua, init_pose = None, folder_name = None, sim_dt = 1/240):
+    def __init__(self, init_pose = None, sim_dt = 1/240):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-       
-        self.folder_name = folder_name 
 
+        config_dir = "config"
+        config_file_name = "grits.yaml"
+        self.cfg = configparser.get_config(config_dir = config_dir, file_name=config_file_name) 
+    
         self.franka_init_pose = init_pose
-        self.mean_eepose_qua = mean_eepose_qua
 
         self.gt_front = np.load("./real_cam_pose/front_cam2base.npy")
         self.gt_back = np.load("./real_cam_pose/back_cam2base.npy")
@@ -246,9 +247,12 @@ class Dp_dataCollection():
         # ee_marker = VisualizationMarkers(frame_marker_cfg.replace(prim_path="/Visuals/ee_current"))
         # goal_marker = VisualizationMarkers(frame_marker_cfg.replace(prim_path="/Visuals/ee_goal"))
         
-
         # real-world trajectory
-        ee_goals = torch.tensor(self.mean_eepose_qua, device=sim.device)
+        traj_folder = self.cfg["data_collection"]["dp"]["read_path"]  
+        trial_name = self.cfg["data_collection"]["dp"]["read_name"]
+        self.traj_path = f"{traj_folder}/{trial_name}.npy"
+        traj_data = np.load(self.traj_path)
+        ee_goals = torch.tensor(traj_data, device=sim.device) 
 
         # modify the trajectory to simulation
         modify_ee_goals = self.functions.eepose_real2sim_offset(ee_goals)
@@ -403,23 +407,28 @@ class Dp_dataCollection():
         back_depth_list = self.functions.list_to_nparray(self.back_depth_list)
 
 
-        print(f"store data {self.folder_name}")
-        output_dir = f"/media/hcis-s22/data/isaaclab_dp_dataset/{self.folder_name}/"
+        save_folder = self.cfg["data_collection"]["dp"]["save_path"]
+        trial_name = self.cfg["data_collection"]["dp"]["read_name"]
+        self.save_folder_path = f"{save_folder}/{trial_name}"
+
+        print(f"store data {trial_name}")
+        # output_dir = f"/media/hcis-s22/data/isaaclab_dp_dataset/{self.folder_name}/"
+        output_dir = f"{self.save_folder_path}"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        np.save(f'{output_dir}seg_pcd.npy', mix_all_pcd)
-        np.save(f'{output_dir}sim_ee_pose_qua.npy', sim_eepose)
-        np.save(f'{output_dir}real_ee_pose_qua.npy', real_eepose)
-        np.save(f'{output_dir}front_rgb.npy', front_rgb_list)
-        np.save(f'{output_dir}front_depth.npy', front_depth_list)
-        np.save(f'{output_dir}back_rgb.npy', back_rgb_list)
-        np.save(f'{output_dir}back_depth.npy', back_depth_list)
+        np.save(f'{output_dir}/seg_pcd.npy', mix_all_pcd)
+        np.save(f'{output_dir}/sim_ee_pose_qua.npy', sim_eepose)
+        np.save(f'{output_dir}/real_ee_pose_qua.npy', real_eepose)
+        np.save(f'{output_dir}/front_rgb.npy', front_rgb_list)
+        np.save(f'{output_dir}/front_depth.npy', front_depth_list)
+        np.save(f'{output_dir}/back_rgb.npy', back_rgb_list)
+        np.save(f'{output_dir}/back_depth.npy', back_depth_list)
 
 
     
 
-def main(traj = None, name = None):
+def main():
 
     """Main function."""
     # Load kit helper
@@ -439,25 +448,15 @@ def main(traj = None, name = None):
     # Run the simulator
 
     franka_init_pose =  torch.tensor([[-0.5246,  0.3741,  0.7812, -1.9760, -1.2856,  1.6066, -0.0263, 0, 0]])
-    
-    ee_goals = traj
 
-    env = Dp_dataCollection(mean_eepose_qua=ee_goals, init_pose = franka_init_pose, folder_name = name, sim_dt = sim_dt)
+    env = Dp_dataCollection(init_pose = franka_init_pose, sim_dt = sim_dt)
     env.run_simulator(sim, scene)
 
 
 if __name__ == "__main__":
     # run the main function
 
-    config_dir = "config"
-    config_file_name = "grits.yaml"
-    cfg = configparser.get_config(config_dir = config_dir, file_name=config_file_name) 
-  
+    
 
-    root_dir = cfg["data_collection"]["dp"]["read_path"]  # Change this to your folder path
-    # br, co, ju, mb, sy, orl
-    subfolder = cfg["data_collection"]["dp"]["read_name"]
-
-    subfolder_path = os.path.join(root_dir, subfolder)
-    issac = main(traj = np.load(subfolder_path), name = str(subfolder)[:-4])
+    issac = main()
     simulation_app.close()

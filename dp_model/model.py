@@ -16,7 +16,7 @@ import cv2
 from typing import Union
 import pytorch3d.transforms as pt
 import functools
-from dynamics_model.test_spillage import spillage_predictor
+from spillage_predictor.test_spillage import spillage_predictor
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 

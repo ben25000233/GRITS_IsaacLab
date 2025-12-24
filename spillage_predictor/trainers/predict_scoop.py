@@ -9,9 +9,9 @@ import torch.optim as optim
 import os
 from tqdm import tqdm
 
-from dynamics_model.models.sensor_fusion import Dynamics_model
+from spillage_predictor.models.sensor_fusion import Dynamics_model
 
-from dynamics_model.dataloaders import MultimodalManipulationDataset
+from spillage_predictor.dataloaders import MultimodalManipulationDataset
 from torch.utils.data import DataLoader
 import copy
 from torch.utils.tensorboard import SummaryWriter

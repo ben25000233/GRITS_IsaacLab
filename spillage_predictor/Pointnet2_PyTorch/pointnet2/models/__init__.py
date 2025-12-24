@@ -1,0 +1,4 @@
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_msg_cls import PointNet2ClassificationMSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_msg_sem import PointNet2SemSegMSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_cls import PointNet2ClassificationSSG
+from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_sem import PointNet2SemSegSSG
