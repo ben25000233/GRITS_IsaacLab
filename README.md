@@ -7,7 +7,9 @@ This repository provides step-by-step instructions for setting up an IsaacLab en
 ## 📦 Environment Setup
 
 ### 1. Install IsaacLab
-Ensure that **IsaacLab** is correctly installed and configured on your system.
+Make sure **IsaacLab** is properly installed and configured on your system.  
+For detailed installation instructions, visit: [IsaacLab Installation Guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html)
+
 
 ### 2. CUDA Version
 - **Required:** CUDA **12.1**

@@ -454,7 +454,6 @@ class DiffusionPolicy(nn.Module):
                 guided_traj = traj_guided
 
         # calaulate original trajectory
-        # if self.cfg.dp.check_traj == True or start_guidance == False :
         # ori trajectory
         for t in scheduler.timesteps:
             # 1. apply conditioning
@@ -473,7 +472,7 @@ class DiffusionPolicy(nn.Module):
 
         traj[condition_mask] = condition_data[condition_mask] 
 
-
+        
         # for show trajectory
         if self.cfg.dp.check_traj == True and start_guidance :
             
@@ -482,7 +481,7 @@ class DiffusionPolicy(nn.Module):
 
             de_ori = _denormalize(traj, self.input_max, self.input_min, self.input_mean)
             de_guided = _denormalize(guided_traj, self.input_max, self.input_min, self.input_mean)
-            # show_trajectory(ori_traj=de_ori[:, start:end], guided_traj=de_guided[:, start:end], opt_traj=None)
+            show_trajectory(ori_traj=de_ori[:, start:end], guided_traj=de_guided[:, start:end], opt_traj=None)
 
             
             # for store denoise processing
@@ -597,16 +596,6 @@ class DiffusionPolicy(nn.Module):
 
         # return action, naction_pred[:,start:end], show_ori_traj, show_guided_traj
         return action, n_ori_traj, naction_pred
-    
-    def Bo_objective(self, weight):
-        traj_clone = self.temp_traj.clone()
-        # print("weight = ", weight)
-        # print(self.guided_grad.shape)
-        # print(traj_clone.shape)
-        traj_clone -= weight[0] * self.guided_grad
-        spillage_prob= self.spillage_predict(traj_clone, self.obs_in)
-
-        return float(spillage_prob)
 
     def normalize_vectors_to_norm(self, tensor, target_norm=0.3):
         """
@@ -697,6 +686,7 @@ def show_trajectory(ori_traj=None, guided_traj=None, opt_traj=None):
     mean_z = (min(z_vals) + max(z_vals))/2
     ax.set_xlim(mean_y - 0.05, mean_y + 0.05)
     ax.set_ylim(mean_z - 0.05, mean_z + 0.05)
+
     # Show plot
     plt.show()
 

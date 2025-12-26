@@ -716,9 +716,10 @@ class Grits():
 
 
 def main():
+    
     """Main function."""
     # Load kit helper
-    sim_dt = 1 / 120
+    sim_dt = 1 / 240
 
     sim_cfg = sim_utils.SimulationCfg(dt=sim_dt, device=args_cli.device)
     sim = sim_utils.SimulationContext(sim_cfg)
