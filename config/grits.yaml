@@ -6,6 +6,10 @@ data_collection:
     read_name: brm_02
     read_path: ./sample_trail/all_eepose_qua
     save_path: /workspace/isaaclab_dp_dataset
+    spillage_dp:
+    data_preprocess:
+      in_dir : "/workspace/isaaclab_dp_dataset"
+      out_dir: "/workspace/isaaclab_dp_split_dataset"
   spillage:
     save_path: /workspace/save_spillge_dataset
     time: 0

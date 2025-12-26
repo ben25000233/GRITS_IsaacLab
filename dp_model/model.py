@@ -16,7 +16,7 @@ import cv2
 from typing import Union
 import pytorch3d.transforms as pt
 import functools
-from spillage_predictor.test_spillage import spillage_predictor
+# from spillage_predictor.test_spillage import spillage_predictor
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 
@@ -218,7 +218,7 @@ class DiffusionPolicy(nn.Module):
         self.end = self.start + self.n_action_steps
 
         # model for guidance
-        self.spillage_predictor = spillage_predictor()
+        # self.spillage_predictor = spillage_predictor()
         # self.quan_predictor = quantity_predictor()
         # self.quan_goal = torch.load('quan/guidance/label0.pt', map_location=self.device)
 

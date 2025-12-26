@@ -59,6 +59,12 @@ Recommended mount paths inside the container:
   val_spillage_dataset   → /workspace/val_spillage_dataset
   ```
 
+- **Diffusion policy data_collection**
+  ```
+  isaaclab_dp_raw_dataset → /workspace/isaaclab_dp_dataset
+  isaaclab_dp_split_dataset → /workspace/isaaclab_dp_split_dataset
+  ```
+
 - **Diffusion Policy training dataset**
   ```
   isaaclab_dp_split_dataset → /workspace/dp_dataset
@@ -145,9 +151,16 @@ function/Env_functions.py
 ## ▶️ Running the Simulation
 
 ### Diffusion Policy (DP) Demonstration Collection
+collect raw data : 
 ```bash
 python isaaclab_dp_data_collect.py
 ```
+after collect raw data, split raw data for training :
+```bash
+cd dp_model
+python process.py
+```
+
 
 ### Spillage Dataset Collection
 ```bash
