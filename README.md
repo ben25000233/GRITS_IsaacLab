@@ -151,11 +151,11 @@ function/Env_functions.py
 ## ▶️ Running the Simulation
 
 ### Diffusion Policy (DP) Demonstration Collection
-collect raw data : 
+1. Collect raw data : 
 ```bash
 python isaaclab_dp_data_collect.py
 ```
-after collect raw data, split raw data for training :
+2. Split raw data for training :
 ```bash
 cd dp_model
 python process.py
