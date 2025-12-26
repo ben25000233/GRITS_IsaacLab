@@ -16,17 +16,14 @@ import cv2
 from typing import Union
 import pytorch3d.transforms as pt
 import functools
-# from spillage_predictor.test_spillage import spillage_predictor
+from spillage_predictor.test_spillage import spillage_predictor
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 
 from skopt import gp_minimize
 from skopt.space import Real
 
-    
-# diffusion_policy/diffusion_policy/model/vision/multi_image_obs_encoder.py
-# trace/tbsim/models/base_models.py
-# trace/tbsim/models/trace_helpers.py
+
 class SingleObEncoder(nn.Module):
 
     def __init__(self, cfg):
@@ -135,8 +132,7 @@ class MultiObEncoder(nn.Module):
         ob_embeddings = features.view(batch_size, -1) 
         return ob_embeddings
 
-# diffusion_policy/diffusion_policy/workspace/train_diffusion_unet_image_workspace.py
-# diffusion_policy/diffusion_policy/policy/diffusion_unet_image_policy.py
+
 class DiffusionPolicy(nn.Module):
     def __init__(self, 
             cfg,
@@ -218,7 +214,7 @@ class DiffusionPolicy(nn.Module):
         self.end = self.start + self.n_action_steps
 
         # model for guidance
-        # self.spillage_predictor = spillage_predictor()
+        self.spillage_predictor = spillage_predictor()
         # self.quan_predictor = quantity_predictor()
         # self.quan_goal = torch.load('quan/guidance/label0.pt', map_location=self.device)
 
@@ -295,34 +291,12 @@ class DiffusionPolicy(nn.Module):
     
     def spillage_objective(self, traj, pre_spillage):  
 
-        # pre_spillage = torch.sqrt(pre_spillage)
-        # make_smoothing_spline(x, y, lam=lam)
-
-        # spillage_prob = torch.sum(traj) * 0 + 1.0  # Create a dependency on traj
-        # spillage_prob = spillage_prob.to(traj.device).requires_grad_(True)
-        # guided_grad = torch.autograd.grad(spillage_prob, traj, allow_unused=True)[0].clone()
-
-        # scaled_pre_spillage = pre_spillage * (1 / pre_spillage.item())
-        # guided_grad = torch.autograd.grad(scaled_pre_spillage, traj)[0]
-
         guided_grad = torch.autograd.grad(pre_spillage, traj)[0]
-        # print("guided_grad= ", torch.mean(guided_grad, dim = 1))
-        
 
         # guided_grad[..., 0] = torch.clip(guided_grad[..., 0], min=-0.01, max = 0.01)
-        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.0, max = 0.03)
+        # guided_grad[..., 1] = torch.clip(guided_grad[..., 1], min=-0.03, max = 0.03)
         # guided_grad[..., 2] = torch.clip(guided_grad[..., 2], min=-0.03, max = 0.03)
         guided_grad[..., 3:] = torch.clip(guided_grad[..., 3:], min=-0.02, max = 0.02)
-
-
-        # z = guided_grad[:, :, 2].squeeze(0).to('cpu')
-        # y = np.linspace(0, 1, 16)
-        # spline = UnivariateSpline(y, z, s=0.2)  # 's' is the smoothing factor
-        # z_smooth = spline(y)
-        # guided_grad[:, :, 2] = torch.tensor(z_smooth).to(self.device)
-
-        # print(torch.mean(guided_grad[0,self.start:self.end-1, 1:3], dim = 0))
-        # guided_grad = torch.clip(guided_grad, max=0.005, min=-0.01)
         
         return guided_grad 
     
@@ -338,10 +312,6 @@ class DiffusionPolicy(nn.Module):
 
         # print(f"guided spillage_prob : {torch.nn.functional.softmax(spillage_logic[0], dim=-1)[1]}")
         
-
-        # print(spillage_logic)
-        # print(spillage_prob)
-        # exit()
         return spillage_prob
 
     def quantity_objective(self, clean_traj, imagine_traj):
@@ -376,15 +346,15 @@ class DiffusionPolicy(nn.Module):
         model = self.model
         scheduler = self.noise_scheduler
 
-        # traj = torch.randn(
-        #     size=condition_data.shape, 
-        #     dtype=condition_data.dtype,
-        #     device=condition_data.device,
-        #     generator=generator)
+        traj = torch.randn(
+            size=condition_data.shape, 
+            dtype=condition_data.dtype,
+            device=condition_data.device,
+            generator=generator)
 
         # fix init noise traj for check 
-        traj = np.load('./init_setting_for_val/init_traj_noise.npy')
-        traj = torch.tensor(traj).to(self.device)
+        # traj = np.load('./init_setting_for_val/init_traj_noise.npy')
+        # traj = torch.tensor(traj).to(self.device)
 
         all_grad = []
 
