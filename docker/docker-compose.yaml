@@ -78,12 +78,18 @@ services:
     build:
       context: ../
       dockerfile: docker/Dockerfile.base
+      # args:
+      #   - ISAACSIM_BASE_IMAGE_ARG=${ISAACSIM_BASE_IMAGE}
+      #   - ISAACSIM_VERSION_ARG=${ISAACSIM_VERSION}
+      #   - ISAACSIM_ROOT_PATH_ARG=${DOCKER_ISAACSIM_ROOT_PATH}
+      #   - ISAACLAB_PATH_ARG=${DOCKER_ISAACLAB_PATH}
+      #   - DOCKER_USER_HOME_ARG=${DOCKER_USER_HOME}
       args:
-        - ISAACSIM_BASE_IMAGE_ARG=${ISAACSIM_BASE_IMAGE}
-        - ISAACSIM_VERSION_ARG=${ISAACSIM_VERSION}
-        - ISAACSIM_ROOT_PATH_ARG=${DOCKER_ISAACSIM_ROOT_PATH}
-        - ISAACLAB_PATH_ARG=${DOCKER_ISAACLAB_PATH}
-        - DOCKER_USER_HOME_ARG=${DOCKER_USER_HOME}
+        - ISAACSIM_BASE_IMAGE_ARG=nvcr.io/nvidia/isaac-sim
+        - ISAACSIM_VERSION_ARG=4.5.0
+        - ISAACSIM_ROOT_PATH_ARG=/isaac-sim
+        - ISAACLAB_PATH_ARG=/workspace/isaacLab
+        - DOCKER_USER_HOME_ARG=/root
     image: isaac-lab-base
     container_name: isaac-lab-base
     environment: *default-isaac-lab-environment
@@ -109,7 +115,8 @@ services:
         # ROS2_APT_PACKAGE will default to NONE. This is to
         # avoid a warning message when building only the base profile
         # with the .env.base file
-        - ROS2_APT_PACKAGE=${ROS2_APT_PACKAGE:-NONE}
+        # - ROS2_APT_PACKAGE=${ROS2_APT_PACKAGE:-NONE}
+        - ROS2_APT_PACKAGE=ros-base
     image: isaac-lab-ros2
     container_name: isaac-lab-ros2
     environment: *default-isaac-lab-environment

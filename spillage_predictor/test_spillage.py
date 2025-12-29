@@ -24,7 +24,7 @@ class spillage_predictor:
             device=self.device,
         ).to(self.device)
 
-        model_path = "/workspace/grits/spillage_predictor/spillage_predictor_ckpt/epoch100.pt"
+        model_path = "/workspace/grits/test_ckpt/spillage_test.pt"
         # model_path = "/media/hcis-s22/data/isaaclab_spillage_dataset/fix_tool_bowl_dataset/all_train/sim_experiment/spillage_ckpt/epoch100.pt"
         print("Loading model from {}...".format(model_path))
         ckpt = torch.load(model_path, weights_only=True)

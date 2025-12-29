@@ -2,7 +2,7 @@ import torch.nn as nn
 # from models.models_utils import init_weights
 import numpy as np
 import torch
-from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_sem import PointNet2SemSegSSG
+# from spillage_predictor.Pointnet2_PyTorch.pointnet2.models.pointnet2_ssg_sem import PointNet2SemSegSSG
 # from models.base_models.layers import CausalConv1D, Flatten, conv2d
 import torchvision.models as models
 import torch.nn.functional as F

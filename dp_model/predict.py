@@ -67,7 +67,9 @@ class LfD():
 
 
         # for docker
-        checkpoint = torch.load('/workspace/dp_ckpt/epoch={}.pth'.format(self.cfg.dp.testing.ckpt_epoch), 
+        # checkpoint = torch.load('/workspace/dp_ckpt/epoch={}.pth'.format(self.cfg.dp.testing.ckpt_epoch), 
+        #                         map_location=self.cfg.dp.testing.device)
+        checkpoint = torch.load('/workspace/grits/test_ckpt/dp_test.pth', 
                                 map_location=self.cfg.dp.testing.device)
                                 
   

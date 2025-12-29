@@ -3,35 +3,16 @@
 This repository provides step-by-step instructions for setting up an IsaacLab environment and running simulations with a **custom spoon and bowl** configuration. It covers environment preparation, Docker usage, parameter configuration, and script execution for data collection and GRITS experiments.
 
 ---
-
 ## 📦 Environment Setup
 
 ### 1. Install IsaacLab
+
 Make sure **IsaacLab** is properly installed and configured on your system.  
-For detailed installation instructions, visit: [IsaacLab Installation Guide](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/index.html)
 
-
-### 2. CUDA Version
-- **Required:** CUDA **12.1**
-
-### 3. PointNet++ Build Fix (CUDA 12.1)
-When installing **PointNet++** with CUDA 12.1, you must update the CUDA architecture list to avoid build errors.
-
-Edit the following file:
+Clone isaaclab in main folder
+```bash
+git clone https://github.com/isaac-sim/IsaacLab.git
 ```
-Pointnet2_PyTorch/pointnet2_ops_lib/setup.py
-```
-
-Update the architecture list as shown below:
-
-```python
-# Original
-os.environ["TORCH_CUDA_ARCH_LIST"] = "3.7+PTX;5.0;6.0;6.1;6.2;7.0;7.5;8.6;8.9"
-
-# Updated (remove 3.7+PTX)
-os.environ["TORCH_CUDA_ARCH_LIST"] = "5.0;6.0;6.1;6.2;7.0;7.5;8.6;8.9"
-```
-
 ---
 
 ## 🐳 Build and Run Docker
@@ -152,6 +133,7 @@ function/Env_functions.py
 
 ## ▶️ Running the Simulation
 
+
 ### Diffusion Policy (DP) Demonstration Collection
 1. Collect raw data : 
 ```bash
@@ -189,7 +171,12 @@ Run:
 python dp_training.py
 ```
 
-### Run GRITS
+### Quick Start
+
+1. **Download Checkpoint**  
+   Place the `dp_ckpt` file into the `test/ckpt` directory.
+
+2. **Run the Program**  
 ```bash
 python grits_main.py
 ```

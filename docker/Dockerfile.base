@@ -20,6 +20,7 @@ ARG DOCKER_USER_HOME_ARG
 
 ENV ISAACSIM_ROOT_PATH=${ISAACSIM_ROOT_PATH_ARG}
 ENV ISAACLAB_PATH=${ISAACLAB_PATH_ARG}
+# ENV ISAACLAB_PATH=/workspace/isaacLab
 ENV DOCKER_USER_HOME=${DOCKER_USER_HOME_ARG}
 ENV LANG=C.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
@@ -53,7 +54,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Isaac Lab source code
-COPY ../ ${ISAACLAB_PATH}
+COPY ../IsaacLab ${ISAACLAB_PATH}
+
 
 # Symlink Isaac Sim root
 RUN ln -sf ${ISAACSIM_ROOT_PATH} ${ISAACLAB_PATH}/_isaac_sim
@@ -99,8 +101,8 @@ RUN echo "export ISAACLAB_PATH=${ISAACLAB_PATH}" >> ${HOME}/.bashrc && \
 RUN /isaac-sim/python.sh -m pip install setuptools wheel build poetry-core
 
 # Install PointNet++ ops (editable mode)
-COPY ../spillage_predictor/Pointnet2_PyTorch/pointnet2_ops_lib/. ./pointnet2_ops_lib/
-RUN /isaac-sim/python.sh -m pip install -e ./pointnet2_ops_lib/
+# COPY ../spillage_predictor/Pointnet2_PyTorch/pointnet2_ops_lib/. ./pointnet2_ops_lib/
+# RUN /isaac-sim/python.sh -m pip install -e ./pointnet2_ops_lib/
 
 # Install additional Python requirements
 COPY ./docker/requirements.txt .
@@ -109,6 +111,6 @@ RUN /isaac-sim/python.sh -m pip install --no-build-isolation -r requirements.txt
 # Install PyTorch3D
 RUN /isaac-sim/python.sh -m pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable" --upgrade
 
-# Default working directory
+# # Default working directory
 WORKDIR /workspace/grits
 
