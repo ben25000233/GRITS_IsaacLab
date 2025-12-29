@@ -30,6 +30,10 @@ From inside the `isaaclab_grits` directory, start the container build process:
 Please mount the **`isaaclab_grits`** directory to a folder on your local machine.
 
 Recommended mount paths inside the container:
+- **GRITS main folder**
+  ```
+  GRITS_IsaacLab → /workspace/grits
+  ```
 
 - **GRITS checkpoints**
   ```
