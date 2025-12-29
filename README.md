@@ -1,6 +1,6 @@
-# 🛠️ IsaacLab Spoon Scene Setup
+# 🛠️ GRITS: A Guided Diffusion Policy for Robot Food Scooping Tasks(IsaacLab simulation version)
 
-This repository provides step-by-step instructions for setting up an IsaacLab environment and running simulations with a **custom spoon and bowl** configuration. It covers environment preparation, Docker usage, parameter configuration, and script execution for data collection and GRITS experiments.
+This repository provides a step-by-step guide to setting up the IsaacLab environment and running GRITS. It includes instructions for environment preparation, Docker-based workflows, parameter configuration, and executing scripts for data collection and GRITS experiments.
 
 ---
 ## 📦 Environment Setup
